@@ -79,6 +79,7 @@ This creates:
 
 - `rs-nexus-sensor-<plugin-id>/pyproject.toml`
 - `rs-nexus-sensor-<plugin-id>/plugin.json`
+- `rs-nexus-sensor-<plugin-id>/src/<package>/plugin.json`
 - `rs-nexus-sensor-<plugin-id>/src/<package>/sensor.py`
 - `rs-nexus-sensor-<plugin-id>/src/<package>/samples.py`
 - a sensor spec YAML file
@@ -93,7 +94,10 @@ created:
 rsnexus-plugin init algorithm my-algorithm-plugin
 ```
 
-Optional executor modules can be included:
+Intermediate and consolidation executor files are always scaffolded. By default,
+their schedules are disabled and the generated executor classes are no-op
+placeholders. Use these flags when you want the scaffold to enable those stages
+in `plugin.json` and `config.yaml` and provide example implementations:
 
 ```bash
 rsnexus-plugin init algorithm generic-data-summary --with-intermediate --with-consolidation
@@ -103,11 +107,13 @@ This creates:
 
 - `rs-nexus-algorithm-<plugin-id>/pyproject.toml`
 - `rs-nexus-algorithm-<plugin-id>/plugin.json`
+- `rs-nexus-algorithm-<plugin-id>/src/<package>/plugin.json`
 - `rs-nexus-algorithm-<plugin-id>/src/<package>/core.py`
 - `rs-nexus-algorithm-<plugin-id>/src/<package>/core_schema.py`
 - `rs-nexus-algorithm-<plugin-id>/src/<package>/processing.py`
 - `rs-nexus-algorithm-<plugin-id>/src/<package>/config.yaml`
-- optional intermediate and consolidation executor modules
+- `rs-nexus-algorithm-<plugin-id>/src/<package>/intermediate_executor.py`
+- `rs-nexus-algorithm-<plugin-id>/src/<package>/consolidation_executor.py`
 - basic import, manifest, and config tests
 
 ## Generated Plugin Contract
@@ -115,10 +121,21 @@ This creates:
 Generated plugins use:
 
 - a `pyproject.toml` build definition
-- a `plugin.json` manifest
+- a root-level `plugin.json` manifest for source review
+- a packaged `src/<package>/plugin.json` manifest included in the built wheel
 - `src/` package layout
 - `rs-nexus-plugin-sdk` contracts for base classes and shared types
 - Python entry points for future runtime discovery
+
+For algorithm plugins, executor file presence is not the capability contract.
+Runtime support for intermediate and consolidation stages is declared by:
+
+- `plugin.json` fields such as `supports_intermediate` and `supports_consolidation`
+- `config.yaml` schedule entries such as `schedules.intermediate.enabled`
+  and `schedules.consolidated.enabled`
+
+RS Nexus OS should use those declarations when deciding whether to schedule or
+load optional executor stages.
 
 The current entry point groups are:
 

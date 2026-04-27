@@ -72,12 +72,12 @@ def build_parser() -> argparse.ArgumentParser:
     algorithm_parser.add_argument(
         "--with-intermediate",
         action="store_true",
-        help="Generate an intermediate executor module",
+        help="Enable the intermediate schedule and generate an example implementation",
     )
     algorithm_parser.add_argument(
         "--with-consolidation",
         action="store_true",
-        help="Generate a consolidation executor module",
+        help="Enable the consolidation schedule and generate an example implementation",
     )
     algorithm_parser.add_argument(
         "--force",

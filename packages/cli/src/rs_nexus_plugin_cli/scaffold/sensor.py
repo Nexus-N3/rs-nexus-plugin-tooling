@@ -49,10 +49,12 @@ def scaffold_sensor_plugin(
 
     _write_text(target_dir / "README.md", _render_readme(template))
     _write_text(target_dir / "pyproject.toml", _render_pyproject(template))
-    _write_text(target_dir / "plugin.json", _render_plugin_manifest(template))
+    plugin_manifest = _render_plugin_manifest(template)
+    _write_text(target_dir / "plugin.json", plugin_manifest)
 
     package_root = target_dir / "src" / template.package_name
     _write_text(package_root / "__init__.py", _render_package_init(template))
+    _write_text(package_root / "plugin.json", plugin_manifest)
     _write_text(package_root / "sensor.py", _render_sensor_module(template))
     _write_text(package_root / "samples.py", _render_samples_module(template))
     _write_text(package_root / template.spec_name, _render_spec(template))
@@ -171,7 +173,7 @@ package-dir = {{"" = "src"}}
 where = ["src"]
 
 [tool.setuptools.package-data]
-{template.package_name} = ["*.yaml"]
+{template.package_name} = ["*.yaml", "plugin.json"]
 """
 
 
@@ -224,4 +226,4 @@ def _render_test_spec(template: SensorPluginTemplate) -> str:
 
 
 def _render_test_manifest(template: SensorPluginTemplate) -> str:
-    return '''import json\nfrom pathlib import Path\n\n\ndef test_plugin_manifest_exists() -> None:\n    manifest = json.loads(Path("plugin.json").read_text(encoding="utf-8"))\n    assert manifest["plugin_type"] == "sensor"\n'''
+    return f'''import json\nfrom pathlib import Path\n\n\ndef test_plugin_manifest_exists() -> None:\n    plugin_root = Path(__file__).resolve().parents[1]\n    root_manifest = json.loads((plugin_root / "plugin.json").read_text(encoding="utf-8"))\n    packaged_manifest = json.loads((plugin_root / "src" / "{template.package_name}" / "plugin.json").read_text(encoding="utf-8"))\n    assert packaged_manifest == root_manifest\n    assert root_manifest["plugin_type"] == "sensor"\n    assert root_manifest["entry_point"] == "{template.package_name}.sensor:{template.class_name}"\n'''

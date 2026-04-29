@@ -44,6 +44,11 @@ def build_plugin_bundle(
             raise FileExistsError(f"Bundle already exists: {bundle_dir}")
         shutil.rmtree(bundle_dir)
 
+    # delete previous build artifacts if they exist, to ensure a clean build
+    source_dist = plugin_root / "dist"
+    if source_dist.exists():
+        shutil.rmtree(source_dist)
+
     subprocess.run(
         [sys.executable, "-m", "build", "--wheel"],
         cwd=plugin_root,

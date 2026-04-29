@@ -62,7 +62,10 @@ def scaffold_algorithm_plugin(
     _write_text(tests_root / "test_import.py", _render_test_import(template))
     _write_text(tests_root / "test_config.py", _render_test_config(template))
     _write_text(tests_root / "test_manifest.py", _render_test_manifest(template))
-
+    _write_text(
+        target_dir / ".gitignore",
+        ".venv/\n__pycache__/\n*.egg-info/\ndist/\nbuild/\n.pytest_cache/\n",
+    )
     return target_dir
 
 

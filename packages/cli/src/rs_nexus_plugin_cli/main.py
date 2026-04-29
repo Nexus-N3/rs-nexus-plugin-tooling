@@ -7,7 +7,7 @@ from pathlib import Path
 
 from rs_nexus_plugin_cli.scaffold.algorithm import scaffold_algorithm_plugin
 from rs_nexus_plugin_cli.scaffold.sensor import scaffold_sensor_plugin
-
+from rs_nexus_plugin_cli.build import build_plugin_bundle
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level CLI parser."""
@@ -85,6 +85,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="Allow writing into an existing empty target directory",
     )
 
+    build_parser = subparsers.add_parser("build", help="Build an installable plugin bundle")
+    build_parser.add_argument(
+        "--plugin-root",
+        default=".",
+        help="Plugin source repository to build",
+    )
+    build_parser.add_argument(
+        "--output-dir",
+        default="build",
+        help="Directory where the installable plugin bundle should be created",
+    )
+    build_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite an existing build bundle",
+    )
+
     return parser
 
 
@@ -118,6 +135,14 @@ def main() -> int:
         )
         return 0
 
+    if args.command == "build":
+        build_plugin_bundle(
+            plugin_root=Path(args.plugin_root),
+            output_dir=Path(args.output_dir),
+            force=args.force,
+        )
+        return 0
+    
     parser.error("Unsupported command")
     return 2
 

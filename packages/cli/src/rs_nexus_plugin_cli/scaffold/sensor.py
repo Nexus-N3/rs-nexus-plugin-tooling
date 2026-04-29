@@ -6,7 +6,6 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-
 @dataclass(frozen=True)
 class SensorPluginTemplate:
     """Normalized metadata used to render a sensor plugin scaffold."""
@@ -64,6 +63,10 @@ def scaffold_sensor_plugin(
     _write_text(tests_root / "test_spec.py", _render_test_spec(template))
     _write_text(tests_root / "test_manifest.py", _render_test_manifest(template))
 
+    _write_text(
+        target_dir / ".gitignore",
+        ".venv/\n__pycache__/\n*.egg-info/\ndist/\nbuild/\n.pytest_cache/\n",
+    )
     return target_dir
 
 

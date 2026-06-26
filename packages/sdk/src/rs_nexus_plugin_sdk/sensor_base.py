@@ -76,6 +76,14 @@ class SensorBase:
         if event in self.listeners:
             self.listeners[event] = None
 
+    def consume_input(self, source_plugin_id: str, payload) -> bool:
+        """Handle forwarded input from another plugin.
+
+        Return True when the payload was accepted and consumed. Plugins that do
+        not need upstream plugin inputs can keep the default implementation.
+        """
+        return False
+
     def _emit(self, event: str, payload):
         """Safely emit an event to the registered callback."""
         callback = self.listeners.get(event)

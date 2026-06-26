@@ -34,6 +34,7 @@ def scaffold_sensor_plugin(
     force: bool,
 ) -> Path:
     """Create a new standalone sensor plugin repository."""
+    output_dir = _resolve_output_dir(output_dir, "sensors")
     normalized_id = _normalize_plugin_id(plugin_id)
     template = _build_template(
         plugin_id=normalized_id,
@@ -124,6 +125,13 @@ def _prepare_target_dir(target_dir: Path, force: bool) -> None:
         target_dir.mkdir(parents=True, exist_ok=False)
 
 
+def _resolve_output_dir(output_dir: Path, plugin_family: str) -> Path:
+    """Place plugins under a grouped dev workspace when targeting dev-plugins."""
+    if output_dir.name == "dev-plugins":
+        return output_dir / plugin_family
+    return output_dir
+
+
 def _write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
@@ -192,6 +200,7 @@ def _render_plugin_manifest(template: SensorPluginTemplate) -> str:
         "spec_path": f"{template.package_name}/{template.spec_name}",
         "sdk_version": "0.1.0",
         "min_rs_nexus_os_version": "0.0.0",
+        "supports_consumed_input": False,
     }
     return json.dumps(manifest, indent=2) + "\n"
 
@@ -204,7 +213,7 @@ def _render_sensor_module(template: SensorPluginTemplate) -> str:
     transport_assignment = ""
     if template.adapter.upper() == "BLE":
         transport_assignment = '\n        self.transport_spec = spec.get("transport", {}).get(self.adapter, {})'
-    return f'''"""Sensor implementation for {template.display_name}."""\n\nimport logging\n\nfrom rs_nexus_plugin_sdk import SensorBase, SensorType\n\nfrom .samples import {template.sample_class_name}\n\n\nclass {template.class_name}(SensorBase):\n    """Generated sensor plugin skeleton."""\n\n    sensor_type = SensorType("{template.display_name}", {template.manufacturer_id})\n    SAMPLE_CLASS = {template.sample_class_name}\n    SPEC_PATH = "{template.spec_name}"\n\n    def __init__(self, sensor):\n        self.logger = logging.getLogger(self.sensor_type.local_name)\n        spec = self.load_raw_spec()\n        super().__init__(self.sensor_type, spec){transport_assignment}\n\n    async def setup(self, adapter, enable_battery: bool = False, enable_button: bool = False):\n        """Configure the sensor after connect."""\n        return\n\n    async def start_stream(self, adapter):\n        """Start streaming sensor data."""\n        raise NotImplementedError("Implement start_stream() for this sensor plugin")\n\n    async def stop_stream(self, adapter):\n        """Stop streaming sensor data."""\n        raise NotImplementedError("Implement stop_stream() for this sensor plugin")\n'''
+    return f'''"""Sensor implementation for {template.display_name}."""\n\nimport logging\n\nfrom rs_nexus_plugin_sdk import SensorBase, SensorType\n\nfrom .samples import {template.sample_class_name}\n\n\nclass {template.class_name}(SensorBase):\n    """Generated sensor plugin skeleton."""\n\n    sensor_type = SensorType("{template.display_name}", {template.manufacturer_id})\n    SAMPLE_CLASS = {template.sample_class_name}\n    SPEC_PATH = "{template.spec_name}"\n\n    def __init__(self, sensor):\n        self.logger = logging.getLogger(self.sensor_type.local_name)\n        spec = self.load_raw_spec()\n        super().__init__(self.sensor_type, spec){transport_assignment}\n\n    def consume_input(self, source_plugin_id: str, payload) -> bool:\n        """Accept forwarded input from another plugin when this plugin needs it."""\n        return False\n\n    async def setup(self, adapter, enable_battery: bool = False, enable_button: bool = False):\n        """Configure the sensor after connect."""\n        return\n\n    async def start_stream(self, adapter):\n        """Start streaming sensor data."""\n        raise NotImplementedError("Implement start_stream() for this sensor plugin")\n\n    async def stop_stream(self, adapter):\n        """Stop streaming sensor data."""\n        raise NotImplementedError("Implement stop_stream() for this sensor plugin")\n'''
 
 
 def _render_samples_module(template: SensorPluginTemplate) -> str:

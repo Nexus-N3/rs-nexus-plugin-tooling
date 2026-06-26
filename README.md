@@ -1,19 +1,27 @@
 # RS Nexus Plugin Tooling
 
-Developer tooling for creating RS Nexus plugins.
+Developer tooling for creating and packaging RS Nexus plugins.
 
 This repository provides:
 
 - `rs-nexus-plugin-sdk`: shared authoring contracts for RS Nexus sensor and algorithm plugins.
 - `rs-nexus-plugin-cli`: the `rsnexus-plugin` command for scaffolding plugin projects.
+- a Phase 1 `.rsnxplugin` bundle build path compatible with `rs-nexus-os`
+- a local deploy/install path for putting entry-point plugins into a chosen Python runtime
+- a focused sensor-plugin harness for source-tree development checks
 
 Repository: <https://github.com/Nexus-N3/rs-nexus-plugin-tooling>
 
 ## Status
 
-This project is in early development. The current scope is plugin authoring and
-local scaffolding. Runtime installation, plugin catalog support, and isolated
-plugin execution are planned for RS Nexus OS but are not implemented here yet.
+This project is in early development. The current implemented scope is:
+
+- plugin scaffolding
+- local source-tree validation
+- local entry-point deploy for the current runtime
+- Phase 1 `.rsnxplugin` bundle packaging for `rs-nexus-os`
+
+Live isolated plugin runtime execution still belongs to `rs-nexus-os`.
 
 ## Requirements
 
@@ -63,10 +71,12 @@ PYTHON=/path/to/python3 ./install.sh
 ## Scaffold A Sensor Plugin
 
 Run the command from the directory where the plugin repository should be
-created:
+created. When `--output-dir` points at a shared `dev-plugins` workspace, sensor
+plugins are placed under `dev-plugins/sensors/` automatically:
 
 ```bash
 rsnexus-plugin init sensor my-sensor-plugin
+rsnexus-plugin init sensor movella-dot --output-dir /path/to/dev-plugins
 ```
 
 Example with additional metadata:
@@ -88,10 +98,12 @@ This creates:
 ## Scaffold An Algorithm Plugin
 
 Run the command from the directory where the plugin repository should be
-created:
+created. When `--output-dir` points at a shared `dev-plugins` workspace,
+algorithm plugins are placed under `dev-plugins/algorithms/` automatically:
 
 ```bash
 rsnexus-plugin init algorithm my-algorithm-plugin
+rsnexus-plugin init algorithm generic-data-summary --output-dir /path/to/dev-plugins
 ```
 
 Intermediate and consolidation executor files are always scaffolded. By default,
@@ -137,10 +149,167 @@ Runtime support for intermediate and consolidation stages is declared by:
 RS Nexus OS should use those declarations when deciding whether to schedule or
 load optional executor stages.
 
+Sensor plugins may declare and implement a `consume_input` hook when they
+accept forwarded data from another sensor plugin via the runtime. Algorithm
+plugins already receive per-sensor data through their existing sample pipeline.
+
 The current entry point groups are:
 
 - `rs_nexus.sensors`
 - `rs_nexus.algorithms`
+
+## Local Deploy
+
+For the current `rs-nexus-os` runtime, plugins are picked up from Python entry
+points visible to the Python environment running the server. A simple local
+deployment path is therefore to install the plugin into that target Python:
+
+```bash
+rsnexus-plugin deploy local \
+  --plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-example \
+  --target-python /path/to/rs-nexus-os/.venv/bin/python \
+  --force
+```
+
+Use `--editable` when you want the target runtime to follow source changes:
+
+```bash
+rsnexus-plugin deploy local \
+  --plugin-root /path/to/plugin \
+  --target-python /path/to/rs-nexus-os/.venv/bin/python \
+  --editable --force
+```
+
+For offline or already-prepared development environments, use:
+
+```bash
+rsnexus-plugin deploy local \
+  --plugin-root /path/to/plugin \
+  --target-python /path/to/rs-nexus-os/.venv/bin/python \
+  --editable --force --no-build-isolation --no-deps
+```
+
+This is a transition path for current entry-point-based plugins. SDK-migrated
+plugins still require the planned `rs-nexus-os` runtime refactor before the
+current core can instantiate them.
+
+## Build A Phase 1 `.rsnxplugin`
+
+The `build` command now produces a Phase 1 `.rsnxplugin` ZIP bundle compatible
+with the `rs_nexus_plugins` installer in `rs-nexus-os`.
+
+Basic usage:
+
+```bash
+rsnexus-plugin build --plugin-root /path/to/plugin --output-dir /tmp/plugin-build
+```
+
+This writes the final bundle into the directory passed by `--output-dir`.
+
+Example output:
+
+```text
+/tmp/plugin-build/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin
+```
+
+This builds:
+
+- the plugin wheel
+- the local `rs-nexus-plugin-sdk` wheel when it can be resolved
+- a `manifest.json`
+- a `checksums.json`
+- a `.rsnxplugin` archive
+
+The archive is a normal ZIP container with:
+
+- `manifest.json` at archive root
+- `checksums.json` at archive root
+- wheel artifacts under `artifacts/`
+- optional copied metadata such as sensor spec or algorithm config under `metadata/`
+
+Important current behavior:
+
+- the local SDK wheel is included automatically when it can be resolved
+- third-party dependency wheels such as `numpy` and `scipy` are **not**
+  auto-fetched into the bundle
+- for an offline-complete bundle, you must provide those extra wheels explicitly
+  with `--artifact`
+
+For offline or dependency-complete bundles, add extra wheel artifacts:
+
+```bash
+rsnexus-plugin build \
+  --plugin-root /path/to/plugin \
+  --output-dir /tmp/plugin-build \
+  --artifact /path/to/dist/numpy.whl \
+  --artifact /path/to/dist/scipy.whl
+```
+
+If you need to point explicitly at the SDK source repo:
+
+```bash
+rsnexus-plugin build \
+  --plugin-root /path/to/plugin \
+  --sdk-root /path/to/rs-nexus-plugin-tooling/packages/sdk
+```
+
+Use `--no-sdk` only when you intentionally do not want the SDK wheel included.
+
+Use an already prepared target runtime for this command, typically the
+`rs-nexus-os` virtual environment that already has `pip`, `setuptools`, and
+wheel build support available.
+
+Because the build path uses `python -m build --no-isolation`, it is intended
+for prepared local development environments rather than fresh network-dependent
+build environments.
+
+## Reference Plugin Examples
+
+The current reference migration plugins are:
+
+- sensor:
+  `dev-plugins/sensors/rs-nexus-sensor-movella-dot`
+- algorithm:
+  `dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity`
+
+Example commands:
+
+```bash
+rsnexus-plugin build \
+  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-movella-dot \
+  --output-dir /tmp/rsnx-build-sensor
+```
+
+```bash
+rsnexus-plugin build \
+  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity \
+  --output-dir /tmp/rsnx-build-algo
+```
+
+These produce:
+
+- `/tmp/rsnx-build-sensor/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin`
+- `/tmp/rsnx-build-algo/rs-nexus-algorithm-standard-loading-intensity-0.1.0.rsnxplugin`
+
+Those bundles are compatible with the Phase 1 installer implemented in
+`rs-nexus-os/rs_nexus_plugins`.
+
+## Sensor Harness
+
+To validate a sensor plugin while developing it, without booting the full
+server, run the focused harness from the plugin source tree:
+
+```bash
+rsnexus-plugin test sensor --plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-example
+```
+
+The harness:
+
+- loads the plugin from `src/`
+- resolves the manifest entry point
+- instantiates the sensor class
+- validates spec/listener wiring
+- probes the optional `consume_input` hook
 
 ## Development Notes
 

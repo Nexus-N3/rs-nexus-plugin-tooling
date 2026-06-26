@@ -32,6 +32,7 @@ def scaffold_algorithm_plugin(
     force: bool,
 ) -> Path:
     """Create a new standalone algorithm plugin repository."""
+    output_dir = _resolve_output_dir(output_dir, "algorithms")
     normalized_id = _normalize_plugin_id(plugin_id)
     template = _build_template(
         plugin_id=normalized_id,
@@ -115,6 +116,13 @@ def _prepare_target_dir(target_dir: Path, force: bool) -> None:
             )
     else:
         target_dir.mkdir(parents=True, exist_ok=False)
+
+
+def _resolve_output_dir(output_dir: Path, plugin_family: str) -> Path:
+    """Place plugins under a grouped dev workspace when targeting dev-plugins."""
+    if output_dir.name == "dev-plugins":
+        return output_dir / plugin_family
+    return output_dir
 
 
 def _write_text(path: Path, content: str) -> None:

@@ -8,6 +8,7 @@ from pathlib import Path
 from rs_nexus_plugin_cli.scaffold.algorithm import scaffold_algorithm_plugin
 from rs_nexus_plugin_cli.scaffold.sensor import scaffold_sensor_plugin
 from rs_nexus_plugin_cli.build import build_plugin_bundle
+from rs_nexus_plugin_cli.deploy import deploy_plugin_local
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level CLI parser."""
@@ -94,12 +95,70 @@ def build_parser() -> argparse.ArgumentParser:
     build_parser.add_argument(
         "--output-dir",
         default="build",
-        help="Directory where the installable plugin bundle should be created",
+        help="Directory where the .rsnxplugin bundle should be created",
+    )
+    build_parser.add_argument(
+        "--sdk-root",
+        help="Optional path to the local rs-nexus-plugin-sdk repo to include as a wheel artifact",
+    )
+    build_parser.add_argument(
+        "--no-sdk",
+        action="store_true",
+        help="Do not auto-build/include the local rs-nexus-plugin-sdk wheel",
+    )
+    build_parser.add_argument(
+        "--artifact",
+        action="append",
+        default=[],
+        help="Additional wheel artifact to include in the .rsnxplugin bundle",
     )
     build_parser.add_argument(
         "--force",
         action="store_true",
         help="Overwrite an existing build bundle",
+    )
+
+    deploy_parser = subparsers.add_parser("deploy", help="Install a plugin into a target Python runtime")
+    deploy_subparsers = deploy_parser.add_subparsers(dest="deploy_type", required=True)
+    local_deploy_parser = deploy_subparsers.add_parser("local", help="Install a plugin for local rs-nexus-os use")
+    local_deploy_parser.add_argument(
+        "--plugin-root",
+        default=".",
+        help="Plugin source repository to install",
+    )
+    local_deploy_parser.add_argument(
+        "--target-python",
+        required=True,
+        help="Python interpreter used by the target rs-nexus-os runtime",
+    )
+    local_deploy_parser.add_argument(
+        "--editable",
+        action="store_true",
+        help="Install the plugin in editable mode instead of building a wheel",
+    )
+    local_deploy_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force reinstall or upgrade in the target runtime",
+    )
+    local_deploy_parser.add_argument(
+        "--no-deps",
+        action="store_true",
+        help="Skip dependency installation in the target runtime",
+    )
+    local_deploy_parser.add_argument(
+        "--no-build-isolation",
+        action="store_true",
+        help="Use the target runtime's existing build tooling instead of isolated build envs",
+    )
+
+    test_parser = subparsers.add_parser("test", help="Run focused plugin development harnesses")
+    test_subparsers = test_parser.add_subparsers(dest="test_type", required=True)
+    sensor_test_parser = test_subparsers.add_parser("sensor", help="Run the sensor plugin harness")
+    sensor_test_parser.add_argument(
+        "--plugin-root",
+        default=".",
+        help="Sensor plugin source repository to load from source",
     )
 
     return parser
@@ -140,6 +199,27 @@ def main() -> int:
             plugin_root=Path(args.plugin_root),
             output_dir=Path(args.output_dir),
             force=args.force,
+            sdk_root=Path(args.sdk_root) if args.sdk_root else None,
+            include_sdk=not args.no_sdk,
+            extra_artifacts=[Path(path) for path in args.artifact],
+        )
+        return 0
+
+    if args.command == "deploy" and args.deploy_type == "local":
+        deploy_plugin_local(
+            plugin_root=Path(args.plugin_root),
+            target_python=Path(args.target_python),
+            editable=args.editable,
+            force=args.force,
+            no_deps=args.no_deps,
+            no_build_isolation=args.no_build_isolation,
+        )
+        return 0
+
+    if args.command == "test" and args.test_type == "sensor":
+        from rs_nexus_plugin_cli.harness import run_sensor_harness
+        run_sensor_harness(
+            plugin_root=Path(args.plugin_root),
         )
         return 0
     

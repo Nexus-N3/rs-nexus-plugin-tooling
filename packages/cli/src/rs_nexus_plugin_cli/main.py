@@ -170,6 +170,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "init" and args.plugin_type == "sensor":
+        print("Creating sensor plugin", args.plugin_id)
         scaffold_sensor_plugin(
             plugin_id=args.plugin_id,
             display_name=args.display_name,
@@ -183,6 +184,7 @@ def main() -> int:
         return 0
 
     if args.command == "init" and args.plugin_type == "algorithm":
+        print("Creating alogrithm plugin", args.plugin_id)
         scaffold_algorithm_plugin(
             plugin_id=args.plugin_id,
             display_name=args.display_name,

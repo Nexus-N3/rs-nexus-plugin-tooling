@@ -31,8 +31,12 @@ if [[ ! -x "$VENV_PYTHON" || ! -x "$VENV_PIP" ]]; then
   exit 1
 fi
 
+echo "Installing base Python build tooling"
+"$VENV_PIP" install --upgrade pip "setuptools>=61.0" wheel "build>=1.2"
+
 echo "Installing rs-nexus-plugin-sdk in editable mode"
 "$VENV_PIP" install -e "$SCRIPT_DIR/packages/sdk"
+
 
 echo "Installing rs-nexus-plugin-cli in editable mode"
 "$VENV_PIP" install -e "$SCRIPT_DIR/packages/cli"

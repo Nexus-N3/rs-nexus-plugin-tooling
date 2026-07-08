@@ -65,10 +65,29 @@ def build_plugin_bundle(
         plugin_wheel = _build_local_wheel(plugin_root, build_root / "plugin-dist")
 
         artifacts: list[Path] = [plugin_wheel]
+
+        local_wheelhouse = build_root / "local-wheelhouse"
+        local_wheelhouse.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(plugin_wheel, local_wheelhouse / plugin_wheel.name)
+
         if include_sdk:
             resolved_sdk_root = _resolve_sdk_root(sdk_root)
             if resolved_sdk_root is not None:
-                artifacts.append(_build_local_wheel(resolved_sdk_root, build_root / "sdk-dist"))
+                sdk_wheel = _build_local_wheel(resolved_sdk_root, build_root / "sdk-dist")
+                artifacts.append(sdk_wheel)
+                shutil.copy2(sdk_wheel, local_wheelhouse / sdk_wheel.name)
+
+        dependency_wheels = _download_runtime_wheels(
+            [str(plugin_wheel)],
+            build_root / "dependency-dist",
+            extra_find_links=[local_wheelhouse],
+        )
+
+        existing_names = {artifact.name for artifact in artifacts}
+        for wheel in dependency_wheels:
+            if wheel.name not in existing_names:
+                artifacts.append(wheel)
+                existing_names.add(wheel.name)
 
         artifacts.extend(extra_artifacts)
 
@@ -139,6 +158,33 @@ def _build_local_wheel(project_root: Path, output_dir: Path) -> Path:
         raise ValueError(f"Expected exactly one wheel in {output_dir}, found {len(wheels)}")
     return wheels[0]
 
+def _download_runtime_wheels(
+    requirements: list[str],
+    output_dir: Path,
+    *,
+    extra_find_links: list[Path] | None = None,
+) -> list[Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    cmd = [
+        sys.executable,
+        "-m",
+        "pip",
+        "download",
+        "--dest",
+        str(output_dir),
+        "--only-binary",
+        ":all:",
+    ]
+
+    for link_dir in extra_find_links or []:
+        cmd.extend(["--find-links", str(link_dir)])
+
+    cmd.extend(requirements)
+
+    subprocess.run(cmd, check=True)
+
+    return sorted(output_dir.glob("*.whl"))
 
 def _copy_optional_metadata(plugin_root: Path, legacy_manifest: dict, archive_root: Path) -> None:
     metadata_dir = archive_root / "metadata"

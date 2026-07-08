@@ -9,6 +9,7 @@ setup(
     packages=find_packages(where="src"),
     install_requires=[
         "rs-nexus-plugin-sdk>=0.1.0",
+        "build>=1.2",
     ],
     entry_points={
         "console_scripts": [

@@ -7,7 +7,6 @@ This repository provides:
 - `rs-nexus-plugin-sdk`: shared authoring contracts for RS Nexus sensor and algorithm plugins.
 - `rs-nexus-plugin-cli`: the `rsnexus-plugin` command for scaffolding plugin projects.
 - a Phase 1 `.rsnxplugin` bundle build path compatible with `rs-nexus-os`
-- a local deploy/install path for putting entry-point plugins into a chosen Python runtime
 - a focused sensor-plugin harness for source-tree development checks
 
 Repository: <https://github.com/Nexus-N3/rs-nexus-plugin-tooling>
@@ -18,10 +17,24 @@ This project is in early development. The current implemented scope is:
 
 - plugin scaffolding
 - local source-tree validation
-- local entry-point deploy for the current runtime
 - Phase 1 `.rsnxplugin` bundle packaging for `rs-nexus-os`
 
 Live isolated plugin runtime execution still belongs to `rs-nexus-os`.
+
+## Current Workflow
+
+The intended plugin workflow is now:
+
+1. Scaffold or edit a plugin in `dev-plugins/`
+2. Build a `.rsnxplugin` bundle with `rsnexus-plugin build`
+3. Install that bundle with `python -m rs_nexus_plugins install ...` in
+   `rs-nexus-os`, or use `install-dev` / `install-dev-list` there for local
+   development
+4. Run `rs-nexus-os`, which discovers installed plugins from the configured
+   plugin root
+
+`rs-nexus-plugin-tooling` is the build side of this workflow.
+`rs-nexus-os` owns installation, cataloging, and runtime discovery.
 
 ## Requirements
 
@@ -158,41 +171,6 @@ The current entry point groups are:
 - `rs_nexus.sensors`
 - `rs_nexus.algorithms`
 
-## Local Deploy
-
-For the current `rs-nexus-os` runtime, plugins are picked up from Python entry
-points visible to the Python environment running the server. A simple local
-deployment path is therefore to install the plugin into that target Python:
-
-```bash
-rsnexus-plugin deploy local \
-  --plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-example \
-  --target-python /path/to/rs-nexus-os/.venv/bin/python \
-  --force
-```
-
-Use `--editable` when you want the target runtime to follow source changes:
-
-```bash
-rsnexus-plugin deploy local \
-  --plugin-root /path/to/plugin \
-  --target-python /path/to/rs-nexus-os/.venv/bin/python \
-  --editable --force
-```
-
-For offline or already-prepared development environments, use:
-
-```bash
-rsnexus-plugin deploy local \
-  --plugin-root /path/to/plugin \
-  --target-python /path/to/rs-nexus-os/.venv/bin/python \
-  --editable --force --no-build-isolation --no-deps
-```
-
-This is a transition path for current entry-point-based plugins. SDK-migrated
-plugins still require the planned `rs-nexus-os` runtime refactor before the
-current core can instantiate them.
-
 ## Build A Phase 1 `.rsnxplugin`
 
 The `build` command now produces a Phase 1 `.rsnxplugin` ZIP bundle compatible
@@ -205,6 +183,15 @@ rsnexus-plugin build --plugin-root /path/to/plugin --output-dir /tmp/plugin-buil
 ```
 
 This writes the final bundle into the directory passed by `--output-dir`.
+
+Use a persistent output directory when you want the produced artifacts retained
+for later install, transfer, or deployment. For example:
+
+```bash
+rsnexus-plugin build \
+  --plugin-root /path/to/plugin \
+  --output-dir /path/to/plugin-builds/sensors
+```
 
 Example output:
 
@@ -258,6 +245,22 @@ Use `--no-sdk` only when you intentionally do not want the SDK wheel included.
 Use an already prepared target runtime for this command, typically the
 `rs-nexus-os` virtual environment that already has `pip`, `setuptools`, and
 wheel build support available.
+
+## Install The Built Bundle
+
+After building a bundle, install it from `rs-nexus-os`:
+
+```bash
+cd /path/to/rs-nexus-os
+python -m rs_nexus_plugins install /path/to/plugin-builds/sensors/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin
+```
+
+For local development against `dev-plugins`, `rs-nexus-os` also provides:
+
+```bash
+python -m rs_nexus_plugins install-dev --dev-plugins-root /path/to/dev-plugins --plugin movella-dot
+python -m rs_nexus_plugins install-dev-list
+```
 
 Because the build path uses `python -m build --no-isolation`, it is intended
 for prepared local development environments rather than fresh network-dependent

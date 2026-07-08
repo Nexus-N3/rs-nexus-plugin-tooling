@@ -2,6 +2,12 @@
 
 Developer CLI for scaffolding, packaging, and locally testing RS Nexus plugins.
 
+The current primary workflow is:
+
+1. scaffold or edit a plugin source tree
+2. build a `.rsnxplugin` bundle with `rsnexus-plugin build`
+3. install that bundle using `rs_nexus_plugins` in `rs-nexus-os`
+
 ## Commands
 
 ```bash
@@ -38,6 +44,9 @@ rsnexus-plugin build --plugin-root /path/to/plugin --output-dir /tmp/plugin-buil
 ```
 
 This writes the final bundle into the directory passed by `--output-dir`.
+
+If you want to keep the bundle for deployment or repeated installs, use a
+persistent output directory rather than `/tmp`.
 
 Example output:
 
@@ -131,3 +140,18 @@ rsnexus-plugin build \
 
 These produce `.rsnxplugin` bundles compatible with the Phase 1 installer in
 `rs-nexus-os/rs_nexus_plugins`.
+
+Install example:
+
+```bash
+cd /path/to/rs-nexus-os
+python -m rs_nexus_plugins install /tmp/rsnx-build-sensor/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin
+```
+
+For local development driven by `config/runtime.env`, `rs-nexus-os` also
+provides:
+
+```bash
+python -m rs_nexus_plugins show-dev-list
+python -m rs_nexus_plugins install-dev-list
+```

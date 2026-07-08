@@ -8,7 +8,6 @@ from pathlib import Path
 from rs_nexus_plugin_cli.scaffold.algorithm import scaffold_algorithm_plugin
 from rs_nexus_plugin_cli.scaffold.sensor import scaffold_sensor_plugin
 from rs_nexus_plugin_cli.build import build_plugin_bundle
-from rs_nexus_plugin_cli.deploy import deploy_plugin_local
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level CLI parser."""
@@ -86,7 +85,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Allow writing into an existing empty target directory",
     )
 
-    build_parser = subparsers.add_parser("build", help="Build an installable plugin bundle")
+    build_parser = subparsers.add_parser("build", help="Build a .rsnxplugin bundle for rs-nexus-os")
     build_parser.add_argument(
         "--plugin-root",
         default=".",
@@ -116,40 +115,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--force",
         action="store_true",
         help="Overwrite an existing build bundle",
-    )
-
-    deploy_parser = subparsers.add_parser("deploy", help="Install a plugin into a target Python runtime")
-    deploy_subparsers = deploy_parser.add_subparsers(dest="deploy_type", required=True)
-    local_deploy_parser = deploy_subparsers.add_parser("local", help="Install a plugin for local rs-nexus-os use")
-    local_deploy_parser.add_argument(
-        "--plugin-root",
-        default=".",
-        help="Plugin source repository to install",
-    )
-    local_deploy_parser.add_argument(
-        "--target-python",
-        required=True,
-        help="Python interpreter used by the target rs-nexus-os runtime",
-    )
-    local_deploy_parser.add_argument(
-        "--editable",
-        action="store_true",
-        help="Install the plugin in editable mode instead of building a wheel",
-    )
-    local_deploy_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Force reinstall or upgrade in the target runtime",
-    )
-    local_deploy_parser.add_argument(
-        "--no-deps",
-        action="store_true",
-        help="Skip dependency installation in the target runtime",
-    )
-    local_deploy_parser.add_argument(
-        "--no-build-isolation",
-        action="store_true",
-        help="Use the target runtime's existing build tooling instead of isolated build envs",
     )
 
     test_parser = subparsers.add_parser("test", help="Run focused plugin development harnesses")
@@ -204,17 +169,6 @@ def main() -> int:
             sdk_root=Path(args.sdk_root) if args.sdk_root else None,
             include_sdk=not args.no_sdk,
             extra_artifacts=[Path(path) for path in args.artifact],
-        )
-        return 0
-
-    if args.command == "deploy" and args.deploy_type == "local":
-        deploy_plugin_local(
-            plugin_root=Path(args.plugin_root),
-            target_python=Path(args.target_python),
-            editable=args.editable,
-            force=args.force,
-            no_deps=args.no_deps,
-            no_build_isolation=args.no_build_isolation,
         )
         return 0
 

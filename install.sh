@@ -57,4 +57,8 @@ Or call it directly:
 
 To make rsnexus-plugin available without activating the venv, add this to PATH:
   export PATH="$VENV_DIR/bin:\$PATH"
+
+If you prefer a shared plugin-development environment instead, install:
+  pip install -e "$SCRIPT_DIR/packages/sdk"
+  pip install -e "$SCRIPT_DIR/packages/cli"
 EOF

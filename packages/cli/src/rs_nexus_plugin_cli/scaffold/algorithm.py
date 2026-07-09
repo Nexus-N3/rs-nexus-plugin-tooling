@@ -87,7 +87,8 @@ def _build_template(
     include_consolidation: bool,
 ) -> AlgorithmPluginTemplate:
     repo_name = f"rs-nexus-algorithm-{plugin_id}"
-    package = package_name or plugin_id.replace("-", "_")
+
+    package = package_name or f"rs_nexus_algorithm_{plugin_id.replace('-', '_')}"
     display = display_name or " ".join(part.capitalize() for part in plugin_id.split("-"))
     base_name = "".join(part.capitalize() for part in plugin_id.split("-"))
     class_name = base_name if base_name.endswith("Algorithm") else base_name + "Algorithm"

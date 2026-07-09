@@ -21,6 +21,21 @@ Run this from the directory where the plugin repository should be created.
 The CLI must be installed in the active Python environment or otherwise
 available on `PATH`.
 
+For sensor plugins, the canonical scaffold layout is:
+
+- repo: `rs-nexus-sensor-<plugin-id>`
+- Python package: `rs_nexus_sensor_<plugin_id>`
+
+Recommended workflow:
+
+- create a `.venv` inside each plugin repository
+- install `rs-nexus-plugin-sdk` and `rs-nexus-plugin-cli` into that plugin
+  environment
+- run `rsnexus-plugin` from the active plugin `.venv`
+
+This keeps plugin dependencies isolated while ensuring the CLI uses the same
+Python environment that will import and build the plugin.
+
 Algorithm scaffolds always include `intermediate_executor.py` and
 `consolidation_executor.py`. The `--with-intermediate` and
 `--with-consolidation` flags enable those stages in the generated manifest and
@@ -44,6 +59,10 @@ rsnexus-plugin build --plugin-root /path/to/plugin --output-dir /tmp/plugin-buil
 ```
 
 This writes the final bundle into the directory passed by `--output-dir`.
+
+When omitted, the CLI default is `plugin-build/`. This is intentional so the
+final `.rsnxplugin` output does not collide with Python build working
+directories such as `build/`.
 
 If you want to keep the bundle for deployment or repeated installs, use a
 persistent output directory rather than `/tmp`.
@@ -128,13 +147,13 @@ Example commands:
 
 ```bash
 rsnexus-plugin build \
-  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-movella-dot \
+  --plugin-root ./dev-plugins/sensors/rs-nexus-sensor-movella-dot \
   --output-dir /tmp/rsnx-build-sensor
 ```
 
 ```bash
 rsnexus-plugin build \
-  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity \
+  --plugin-root ./dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity \
   --output-dir /tmp/rsnx-build-algo
 ```
 

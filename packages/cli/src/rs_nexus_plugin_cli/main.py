@@ -8,6 +8,7 @@ from pathlib import Path
 from rs_nexus_plugin_cli.scaffold.algorithm import scaffold_algorithm_plugin
 from rs_nexus_plugin_cli.scaffold.sensor import scaffold_sensor_plugin
 from rs_nexus_plugin_cli.build import build_plugin_bundle
+from rs_nexus_plugin_cli.plugin_env import prepare_plugin_venv
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level CLI parser."""
@@ -93,7 +94,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     build_parser.add_argument(
         "--output-dir",
-        default="build",
+        default="plugin-build",
         help="Directory where the .rsnxplugin bundle should be created",
     )
     build_parser.add_argument(
@@ -136,7 +137,7 @@ def main() -> int:
 
     if args.command == "init" and args.plugin_type == "sensor":
         print("Creating sensor plugin", args.plugin_id)
-        scaffold_sensor_plugin(
+        plugin_root = scaffold_sensor_plugin(
             plugin_id=args.plugin_id,
             display_name=args.display_name,
             output_dir=Path(args.output_dir),
@@ -146,11 +147,12 @@ def main() -> int:
             manufacturer_id=args.manufacturer_id,
             force=args.force,
         )
+        prepare_plugin_venv(plugin_root)
         return 0
 
     if args.command == "init" and args.plugin_type == "algorithm":
         print("Creating alogrithm plugin", args.plugin_id)
-        scaffold_algorithm_plugin(
+        plugin_root = scaffold_algorithm_plugin(
             plugin_id=args.plugin_id,
             display_name=args.display_name,
             output_dir=Path(args.output_dir),
@@ -159,6 +161,7 @@ def main() -> int:
             include_consolidation=args.with_consolidation,
             force=args.force,
         )
+        prepare_plugin_venv(plugin_root)
         return 0
 
     if args.command == "build":

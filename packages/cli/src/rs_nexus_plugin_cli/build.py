@@ -4,7 +4,6 @@ import hashlib
 import json
 import shutil
 import subprocess
-import sys
 import tempfile
 import zipfile
 from pathlib import Path
@@ -40,6 +39,19 @@ def _load_plugin_manifest(plugin_root: Path) -> dict:
 
     return manifest
 
+def _plugin_python(plugin_root: Path) -> Path:
+    python_bin = plugin_root / ".venv" / "bin" / "python"
+
+    if not python_bin.is_file():
+        raise FileNotFoundError(
+            "Plugin virtual environment not found.\n\n"
+            f"Expected:\n  {python_bin}\n\n"
+            "Create the plugin with:\n"
+            "  rsnexus-plugin init ...\n\n"
+            "or recreate the plugin environment before building."
+        )
+
+    return python_bin
 
 def build_plugin_bundle(
     plugin_root: Path,
@@ -53,6 +65,7 @@ def build_plugin_bundle(
     """Build a Phase 1 .rsnxplugin archive from a plugin source repo."""
     plugin_root = plugin_root.resolve()
     output_dir = output_dir.resolve()
+    plugin_python = _plugin_python(plugin_root)
     extra_artifacts = [artifact.resolve() for artifact in (extra_artifacts or [])]
 
     legacy_manifest = _load_plugin_manifest(plugin_root)
@@ -62,7 +75,11 @@ def build_plugin_bundle(
 
     build_root = Path(tempfile.mkdtemp(prefix="rsnexus-plugin-build-"))
     try:
-        plugin_wheel = _build_local_wheel(plugin_root, build_root / "plugin-dist")
+        plugin_wheel = _build_local_wheel(
+            plugin_root,
+            build_root / "plugin-dist",
+            plugin_python,
+        )
 
         artifacts: list[Path] = [plugin_wheel]
 
@@ -73,13 +90,18 @@ def build_plugin_bundle(
         if include_sdk:
             resolved_sdk_root = _resolve_sdk_root(sdk_root)
             if resolved_sdk_root is not None:
-                sdk_wheel = _build_local_wheel(resolved_sdk_root, build_root / "sdk-dist")
+                sdk_wheel = _build_local_wheel(
+                    resolved_sdk_root,
+                    build_root / "sdk-dist",
+                    plugin_python,
+                )
                 artifacts.append(sdk_wheel)
                 shutil.copy2(sdk_wheel, local_wheelhouse / sdk_wheel.name)
 
         dependency_wheels = _download_runtime_wheels(
             [str(plugin_wheel)],
             build_root / "dependency-dist",
+            python_bin=plugin_python,
             extra_find_links=[local_wheelhouse],
         )
 
@@ -146,13 +168,27 @@ def _resolve_sdk_root(sdk_root: Path | None) -> Path | None:
     return None
 
 
-def _build_local_wheel(project_root: Path, output_dir: Path) -> Path:
+def _build_local_wheel(
+    project_root: Path,
+    output_dir: Path,
+    python_bin: Path,
+) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
+
     subprocess.run(
-        [sys.executable, "-m", "build", "--wheel", "--no-isolation", "--outdir", str(output_dir)],
+        [
+            str(python_bin),
+            "-m",
+            "build",
+            "--wheel",
+            "--no-isolation",
+            "--outdir",
+            str(output_dir),
+        ],
         cwd=project_root,
         check=True,
     )
+
     wheels = sorted(output_dir.glob("*.whl"))
     if len(wheels) != 1:
         raise ValueError(f"Expected exactly one wheel in {output_dir}, found {len(wheels)}")
@@ -162,12 +198,13 @@ def _download_runtime_wheels(
     requirements: list[str],
     output_dir: Path,
     *,
+    python_bin: Path,
     extra_find_links: list[Path] | None = None,
 ) -> list[Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     cmd = [
-        sys.executable,
+        str(python_bin),
         "-m",
         "pip",
         "download",
@@ -176,7 +213,6 @@ def _download_runtime_wheels(
         "--only-binary",
         ":all:",
     ]
-
     for link_dir in extra_find_links or []:
         cmd.extend(["--find-links", str(link_dir)])
 

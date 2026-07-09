@@ -449,6 +449,10 @@ rsnexus-plugin build \
   --output-dir /path/to/dev-plugins/plugin-builds/sensors
 ```
 
+rsnexus-plugin build \
+  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-movesense \
+  --output-dir /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/sensors
+
 Algorithm example:
 
 ```bash

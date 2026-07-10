@@ -137,6 +137,10 @@ class HarnessSensorManager:
                 sensor.attributes[name] = value
             if self.config.location:
                 sensor.set_location(self.config.location)
+            else:
+                default_location = self._default_location_for_sensor(sensor)
+                if default_location:
+                    sensor.set_location(default_location)
             self.adapter_pool.get_or_create(sensor.adapter)
             self.register_listeners_with_sensor(sensor)
             self.sensors.append(sensor)
@@ -201,6 +205,15 @@ class HarnessSensorManager:
     async def shutdown(self) -> None:
         await self.streaming_service.shutdown()
         self.adapter_pool.close_all()
+
+    @staticmethod
+    def _default_location_for_sensor(sensor) -> str | None:
+        spec = getattr(sensor, "spec", {}) or {}
+        locations = spec.get("locations") or {}
+        supported = list(locations.get("supported") or [])
+        if len(supported) == 1:
+            return supported[0]
+        return None
 
     def build_summary(
         self,

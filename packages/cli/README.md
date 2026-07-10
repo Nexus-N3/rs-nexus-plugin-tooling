@@ -28,13 +28,13 @@ For sensor plugins, the canonical scaffold layout is:
 
 Recommended workflow:
 
+- install the shared tooling once with `./install.sh`
+- keep `rsnexus-plugin` on `PATH`, for example through `~/.local/bin`
 - create a `.venv` inside each plugin repository
-- install `rs-nexus-plugin-sdk` and `rs-nexus-plugin-cli` into that plugin
-  environment
-- run `rsnexus-plugin` from the active plugin `.venv`
+- let `rsnexus-plugin init` manage the plugin `.venv`
 
-This keeps plugin dependencies isolated while ensuring the CLI uses the same
-Python environment that will import and build the plugin.
+This keeps plugin dependencies isolated while keeping the CLI and sensor
+harness outside plugin environments.
 
 Algorithm scaffolds always include `intermediate_executor.py` and
 `consolidation_executor.py`. The `--with-intermediate` and
@@ -46,6 +46,21 @@ From the tooling repo root, run:
 ```bash
 ./install.sh
 ```
+
+This creates or reuses the tooling `.venv`, installs the CLI there, and writes
+a `rsnexus-plugin` launcher into `~/.local/bin` by default.
+
+## Sensor Test Harness
+
+Use the shared CLI to execute a sensor plugin test run:
+
+```bash
+rsnexus-plugin test sensor --plugin-root /path/to/plugin
+```
+
+The CLI harness launches the plugin's own `.venv/bin/python` for the runtime
+portion, so plugin dependencies stay isolated even though the harness lives in
+the tooling environment.
 
 ## Build Output
 

@@ -1,4 +1,4 @@
-"""Source-tree loading helpers for the plugin harness."""
+"""Source-tree loading helpers for SDK-side sensor harness execution."""
 
 from __future__ import annotations
 
@@ -9,10 +9,12 @@ import sys
 from pathlib import Path
 
 from rs_nexus_plugin_sdk import SensorBase
-from rs_nexus_plugin_sdk.harness import HarnessPluginTarget
+
+from .config import HarnessPluginTarget
 
 
 def load_plugin_manifest(plugin_root: Path) -> dict:
+    """Load and minimally validate a plugin manifest from a source tree."""
     manifest_path = plugin_root / "plugin.json"
     if not manifest_path.is_file():
         raise FileNotFoundError(f"Not a plugin source repo: missing plugin.json in {plugin_root}")
@@ -20,6 +22,7 @@ def load_plugin_manifest(plugin_root: Path) -> dict:
 
 
 def load_sensor_target(plugin_root: Path) -> HarnessPluginTarget:
+    """Build the harness plugin target from the source plugin manifest and spec."""
     plugin_root = plugin_root.resolve()
     manifest = load_plugin_manifest(plugin_root)
     if manifest.get("plugin_type") != "sensor":
@@ -42,6 +45,7 @@ def load_sensor_target(plugin_root: Path) -> HarnessPluginTarget:
 
 
 def load_sensor_class(plugin_root: Path):
+    """Load the sensor class declared by the plugin entry point."""
     manifest = load_plugin_manifest(plugin_root)
     src_dir = plugin_root / "src"
     if not src_dir.is_dir():

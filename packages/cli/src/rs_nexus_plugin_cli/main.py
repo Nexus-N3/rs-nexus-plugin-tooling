@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import subprocess
 from pathlib import Path
 
 from rs_nexus_plugin_cli.scaffold.algorithm import scaffold_algorithm_plugin
@@ -126,6 +128,25 @@ def build_parser() -> argparse.ArgumentParser:
         default=".",
         help="Sensor plugin source repository to load from source",
     )
+    sensor_test_parser.add_argument("--adapter-backend", default="auto")
+    sensor_test_parser.add_argument("--sensor-count", type=int, default=1)
+    sensor_test_parser.add_argument("--duration", type=float, default=15.0)
+    sensor_test_parser.add_argument("--identify", action="store_true")
+    sensor_test_parser.add_argument("--location")
+    sensor_test_parser.add_argument("--gateway-serial-port")
+    sensor_test_parser.add_argument("--gateway-baudrate", type=int, default=1_000_000)
+    sensor_test_parser.add_argument("--gateway-protocol-version", type=int, default=1)
+    sensor_test_parser.add_argument(
+        "--output-dir",
+        help="Optional capture directory. Defaults to plugin-build/harness-captures/<plugin-id>/.",
+    )
+    sensor_test_parser.add_argument(
+        "--attribute",
+        action="append",
+        default=[],
+        help="Override a sensor attribute as KEY=VALUE. VALUE may be JSON.",
+    )
+    sensor_test_parser.add_argument("--fail-on-no-data", action="store_true")
 
     return parser
 
@@ -176,11 +197,49 @@ def main() -> int:
         return 0
 
     if args.command == "test" and args.test_type == "sensor":
-        from rs_nexus_plugin_cli.harness import run_sensor_harness
-        run_sensor_harness(
-            plugin_root=Path(args.plugin_root),
-        )
-        return 0
+        plugin_root = Path(args.plugin_root).resolve()
+        plugin_python = prepare_plugin_venv(plugin_root)
+        tooling_root = Path(__file__).resolve().parents[4]
+        cli_src = tooling_root / "packages" / "cli" / "src"
+        sdk_src = tooling_root / "packages" / "sdk" / "src"
+        pythonpath_entries = [str(cli_src), str(sdk_src)]
+        existing_pythonpath = os.environ.get("PYTHONPATH")
+        if existing_pythonpath:
+            pythonpath_entries.append(existing_pythonpath)
+        env = os.environ.copy()
+        env["PYTHONPATH"] = os.pathsep.join(pythonpath_entries)
+        cmd = [
+            str(plugin_python),
+            "-m",
+            "rs_nexus_plugin_cli.sensor_harness.cli",
+            "--plugin-root",
+            str(plugin_root),
+            "--adapter-backend",
+            args.adapter_backend,
+            "--sensor-count",
+            str(args.sensor_count),
+            "--duration",
+            str(args.duration),
+            "--gateway-baudrate",
+            str(args.gateway_baudrate),
+            "--gateway-protocol-version",
+            str(args.gateway_protocol_version),
+        ]
+        if args.identify:
+            cmd.append("--identify")
+        if args.location:
+            cmd.extend(["--location", args.location])
+        if args.gateway_serial_port:
+            cmd.extend(["--gateway-serial-port", args.gateway_serial_port])
+        if args.output_dir:
+            cmd.extend(["--output-dir", args.output_dir])
+        for item in args.attribute:
+            cmd.extend(["--attribute", item])
+        if args.fail_on_no_data:
+            cmd.append("--fail-on-no-data")
+
+        completed = subprocess.run(cmd, check=False, env=env)
+        return completed.returncode
     
     parser.error("Unsupported command")
     return 2

@@ -256,12 +256,6 @@ The runtime consumes the final bundle.
 
 ## Current Sensor Harness Flow
 
-The current full sensor harness entry point is the standalone test script:
-
-```bash
-python3 rs-nexus-plugin-tooling/scripts/test_sensor_plugin.py --help
-```
-
 Use this flow while developing a sensor plugin:
 
 ```text
@@ -307,8 +301,8 @@ Then run the Movesense harness from the workspace root or from the tooling
 repository:
 
 ```bash
-python3 rs-nexus-plugin-tooling/scripts/test_sensor_plugin.py \
-  --plugin-root dev-plugins/sensors/rs-nexus-sensor-movesense \
+rsnexus-plugin test sensor \
+  --plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-movesense \
   --adapter-backend nexus_ble_gateway \
   --gateway-serial-port /dev/serial/by-id/your_gateway_port \
   --duration 15 \
@@ -318,8 +312,8 @@ python3 rs-nexus-plugin-tooling/scripts/test_sensor_plugin.py \
 If you want direct host BLE instead of the gateway backend:
 
 ```bash
-python3 rs-nexus-plugin-tooling/scripts/test_sensor_plugin.py \
-  --plugin-root dev-plugins/sensors/rs-nexus-sensor-movesense \
+rsnexus-plugin test sensor \
+  --plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-movesense \
   --adapter-backend bleak \
   --duration 15 \
   --fail-on-no-data
@@ -348,6 +342,11 @@ dev-plugins/sensors/rs-nexus-sensor-movesense/
 These CSV files are intended for developer inspection after the run. The
 developer can analyze them with spreadsheets, Python, plotting tools, or any
 other preferred workflow.
+
+The `test sensor` command is provided by the shared tooling CLI. It launches
+the harness with the plugin's own `.venv/bin/python`, not the currently active
+shell Python. This keeps plugin dependencies isolated while keeping the CLI and
+harness out of plugin environments.
 
 ## Scaffold A Sensor Plugin
 
@@ -786,7 +785,7 @@ Algorithm plugins already receive per-sensor data through their existing sample 
 
 Sensor plugins should not need to depend directly on BLE backends such as `bleak` for normal packaging.
 
-Runtime BLE operations belong to `rs-nexus-os` today and to the future harness adapter layer when source-mode testing is added.
+Runtime BLE operations belong to `rs-nexus-os` in deployment and to the CLI harness adapter layer during source-mode plugin testing.
 
 ## Test A Sensor Plugin
 
@@ -805,7 +804,9 @@ The harness:
 - loads the plugin from src/
 - resolves the manifest entry point
 - instantiates the sensor class
-- validates spec/listener wiring
+- uses the SDK sensor manager with the selected BLE adapter backend
+- exercises discovery, connection, streaming, stop, and disconnect
+- captures emitted data to CSV for developer inspection
 - probes the optional consume_input hook
 ```
 

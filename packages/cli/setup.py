@@ -10,6 +10,8 @@ setup(
     install_requires=[
         "rs-nexus-plugin-sdk>=0.1.0",
         "build>=1.2",
+        "bleak>=0.22",
+        "pyserial>=3.5",
     ],
     entry_points={
         "console_scripts": [

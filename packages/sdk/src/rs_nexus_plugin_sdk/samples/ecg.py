@@ -18,7 +18,7 @@ class ECGSample(SensorSample):
     def csv_header(cls) -> List[str]:
         return [
             "timestamp",
-            "voltage",
+            "voltage_mv",
         ]
 
     def to_csv_row(self) -> List[Any]:

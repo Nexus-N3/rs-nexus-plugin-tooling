@@ -21,6 +21,7 @@ This repository provides:
 * local source-tree validation
 * Phase 1 `.rsnxplugin` bundle packaging compatible with `rs-nexus-os`
 * a focused sensor-plugin harness for source-tree development checks
+* CSV capture output from harness test runs for offline inspection
 
 The main idea is simple:
 
@@ -215,6 +216,18 @@ To choose a specific Python executable:
 PYTHON=/path/to/python3 ./install.sh
 ```
 
+## Install Or Refresh The Tooling
+
+When the SDK or CLI changes, rerun the installer from the tooling repository:
+
+```bash
+cd /path/to/rs-nexus-plugin-tooling
+./install.sh
+```
+
+This refreshes the tooling `.venv`, reinstalls the SDK and CLI in editable
+mode, and validates that `rsnexus-plugin` still starts.
+
 ## Current Workflow
 
 The intended workflow is:
@@ -241,6 +254,25 @@ The plugin `.venv` is isolated.
 
 The runtime consumes the final bundle.
 
+## Current Sensor Harness Flow
+
+The current full sensor harness entry point is the standalone test script:
+
+```bash
+python3 rs-nexus-plugin-tooling/scripts/test_sensor_plugin.py --help
+```
+
+Use this flow while developing a sensor plugin:
+
+```text
+1. Install or refresh rs-nexus-plugin-tooling with ./install.sh.
+2. Scaffold a plugin with rsnexus-plugin init.
+3. Implement the plugin inside its own source repository and .venv.
+4. Run the sensor harness against the plugin source tree.
+5. Inspect the captured CSV output.
+6. Build the final .rsnxplugin bundle once the harness run is satisfactory.
+```
+
 ## One-Time Workspace Setup
 
 Create the shared development directories:
@@ -251,6 +283,71 @@ mkdir -p /path/to/dev-plugins/algorithms
 mkdir -p /path/to/dev-plugins/plugin-builds/sensors
 mkdir -p /path/to/dev-plugins/plugin-builds/algorithms
 ```
+
+## Test The Current Movesense Plugin Against The Harness
+
+Assuming a workspace layout like:
+
+```text
+<workspace>/
+  rs-nexus-plugin-tooling/
+  dev-plugins/
+    sensors/
+      rs-nexus-sensor-movesense/
+```
+
+refresh the tooling first:
+
+```bash
+cd /path/to/rs-nexus-plugin-tooling
+./install.sh
+```
+
+Then run the Movesense harness from the workspace root or from the tooling
+repository:
+
+```bash
+python3 rs-nexus-plugin-tooling/scripts/test_sensor_plugin.py \
+  --plugin-root dev-plugins/sensors/rs-nexus-sensor-movesense \
+  --adapter-backend nexus_ble_gateway \
+  --gateway-serial-port /dev/serial/by-id/your_gateway_port \
+  --duration 15 \
+  --fail-on-no-data
+```
+
+If you want direct host BLE instead of the gateway backend:
+
+```bash
+python3 rs-nexus-plugin-tooling/scripts/test_sensor_plugin.py \
+  --plugin-root dev-plugins/sensors/rs-nexus-sensor-movesense \
+  --adapter-backend bleak \
+  --duration 15 \
+  --fail-on-no-data
+```
+
+Optional useful flags:
+
+* `--identify` to call the plugin identify path after connect
+* `--sensor-count N` to instantiate more than one expected sensor
+* `--attribute KEY=VALUE` to override sensor attributes during the run
+* `--output-dir /path/to/capture-dir` to control where captured files are written
+
+By default the harness writes captured output under the plugin repository:
+
+```text
+dev-plugins/sensors/rs-nexus-sensor-movesense/
+  plugin-build/
+    harness-captures/
+      rs-nexus-sensor-movesense/
+        ecg.csv
+        hr.csv
+        temp.csv
+        errors.log
+```
+
+These CSV files are intended for developer inspection after the run. The
+developer can analyze them with spreadsheets, Python, plotting tools, or any
+other preferred workflow.
 
 ## Scaffold A Sensor Plugin
 

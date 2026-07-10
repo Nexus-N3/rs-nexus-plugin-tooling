@@ -20,6 +20,7 @@ class DiscoveryService:
         timeout: float = 5.0,
     ):
         pending_sensors = [sensor for sensor in sensors if getattr(sensor, "address", None) is None]
+        print("Discovery service: discovering sensors", pending_sensors)
         return await self._discover_pending(
             pending_sensors=pending_sensors,
             loop=loop,
@@ -43,6 +44,7 @@ class DiscoveryService:
         adapter_groups = self.adapter_pool.group_sensors(pending_sensors)
         for adapter, sensors_for_adapter in adapter_groups.items():
             sensor_names = [sensor.name for sensor in sensors_for_adapter]
+            print(sensor_names)
             devices = await adapter.discover_devices(sensor_names, timeout=timeout)
             matched = self._match_devices(sensor_names, devices)
             missing = self._missing_sensor_names(sensor_names, matched)
@@ -85,6 +87,7 @@ class DiscoveryService:
                     continue
                 device, adv_data = pair
                 local_name = getattr(adv_data, "local_name", None) or getattr(device, "name", None) or ""
+                print("match devices", local_name)
                 if local_name == name or local_name.startswith(name):
                     matched = (device, adv_data, name)
                     used_addresses.add(address)

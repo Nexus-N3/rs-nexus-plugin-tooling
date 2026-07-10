@@ -61,8 +61,20 @@ class GatewayBLEAdapter:
 
     async def discover_devices(self, names: list[str], timeout: float = 5.0):
         timeout_ms = max(int(timeout * 1000.0), 1000)
-        requested_name = names[0] if len(names) == 1 else None
-        devices = await asyncio.to_thread(self.gateway_client.scan, timeout_ms, name_filter=requested_name)
+        requested_names = [str(name).strip() for name in names if str(name).strip()]
+        unique_names = sorted(set(requested_names))
+
+        if len(unique_names) == 1:
+            devices = await asyncio.to_thread(
+                lambda: self.gateway_client.scan(
+                    timeout_ms,
+                    name_prefix_filter=unique_names[0],
+                )
+            )
+        else:
+            devices = await asyncio.to_thread(
+                lambda: self.gateway_client.scan(timeout_ms)
+            )
         return discovered_devices_to_discovery_map(devices)
 
     async def connect(self, client: GatewayBLETransportClient):

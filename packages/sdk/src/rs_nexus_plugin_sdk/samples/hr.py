@@ -23,7 +23,7 @@ class HRSample(SensorSample):
     def csv_header(cls) -> List[str]:
         return [
             "timestamp",
-            "heart_rate",
+            "heart_rate_bpm",
         ]
 
     def to_csv_row(self) -> List[Any]:

@@ -187,7 +187,13 @@ class GatewaySerialClient:
         finally:
             self._unregister_request(request_id)
 
-    def scan(self, timeout_ms: int, *, name_filter: str | None = None) -> list[DiscoveredDevice]:
+    def scan(
+        self,
+        timeout_ms: int,
+        *,
+        name_filter: str | None = None,
+        name_prefix_filter: str | None = None,
+    ) -> list[DiscoveredDevice]:
         request_id = self.request_id("scan")
         request_queue = self._register_request(request_id)
         matches: dict[str, DiscoveredDevice] = {}
@@ -200,6 +206,8 @@ class GatewaySerialClient:
                 if msg_type == "scan_result" and msg.get("request_id") == request_id:
                     name = str(msg.get("name", ""))
                     if name_filter is not None and name != name_filter:
+                        continue
+                    if name_prefix_filter is not None and not name.startswith(name_prefix_filter):
                         continue
                     address = self._normalize_address(msg.get("address"))
                     if not address or address in matches:
@@ -216,6 +224,7 @@ class GatewaySerialClient:
                         service_uuids=service_uuids,
                         raw=dict(msg),
                     )
+                    print("matches in ble gateway client", matches)
                     continue
                 if msg_type == "scan_complete" and msg.get("request_id") == request_id:
                     return list(matches.values())

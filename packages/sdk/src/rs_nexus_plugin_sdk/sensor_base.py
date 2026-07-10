@@ -19,7 +19,7 @@ class SensorBase:
         self.adapter = spec["sensor"]["adapter"]
         self.connection_status = ConnectionStatus.DISCONNECTED
         self.transport_client = None
-        self.location = str
+        self.location = None
         self.capabilities = set(spec.get("capabilities", []))
         self.attributes = {k: v.get("default") for k, v in spec.get("attributes", {}).items()}
         self.listeners = {event: None for event in spec.get("events", [])}

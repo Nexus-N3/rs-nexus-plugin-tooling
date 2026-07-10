@@ -57,6 +57,7 @@ class SensorController:
         return await handler(msg[arg_key])
 
     async def handle_discover(self, timeout: float = 5.0):
+        print("Sensor controller: discovering sensors", self._sensors())
         return await self.discovery_service.discover_all(
             sensors=self._sensors(),
             loop=self.loop,

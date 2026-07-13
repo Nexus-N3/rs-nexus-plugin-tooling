@@ -162,6 +162,54 @@ Useful optional flags:
 - `--attribute KEY=VALUE`
 - `--output-dir /custom/output/path`
 
+To test an algorithm plugin against a specific sensor plugin, use:
+
+```bash
+rsnexus-plugin test algorithm \
+  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity \
+  --sensor-plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-movesense \
+  --adapter-backend nexus_ble_gateway \
+  --gateway-serial-port /dev/serial/by-id/your_gateway_port \
+  --duration 15 \
+  --fail-on-no-results
+```
+
+This writes sensor capture CSV files and compute JSONL files under the
+algorithm plugin's `plugin-test/` directory.
+
+Those compute files follow the same stage split used by `rs-nexus-os`:
+
+- `computed/real_time.jsonl`
+- `computed/intermediate.jsonl`
+- `computed/consolidated.jsonl`
+
+The shared contract is that these are compute results with consistent `stage`
+semantics. The payload body itself remains algorithm-specific.
+
+To use the built Movesense bundle instead of the sensor source tree:
+
+```bash
+rsnexus-plugin test algorithm \
+  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity \
+  --sensor-bundle-path /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/sensors/rs-nexus-sensor-movesense-0.1.2.rsnxplugin \
+  --adapter-backend nexus_ble_gateway \
+  --gateway-serial-port /dev/serial/by-id/your_gateway_port \
+  --duration 15 \
+  --fail-on-no-results
+```
+
+To validate a built algorithm bundle as well:
+
+```bash
+rsnexus-plugin test algorithm-bundle \
+  --bundle-path /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/algorithms/your-algorithm.rsnxplugin \
+  --sensor-bundle-path /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/sensors/rs-nexus-sensor-movesense-0.1.2.rsnxplugin \
+  --adapter-backend nexus_ble_gateway \
+  --gateway-serial-port /dev/serial/by-id/your_gateway_port \
+  --duration 15 \
+  --fail-on-no-results
+```
+
 ## 6. Review The Captured Output
 
 By default the harness writes captured data under the plugin repository:

@@ -68,6 +68,41 @@ To test a built `.rsnxplugin` bundle instead of source mode:
 rsnexus-plugin test sensor-bundle --bundle-path /path/to/plugin-build/your-plugin.rsnxplugin
 ```
 
+Algorithm plugins can be tested in source mode against a chosen sensor plugin:
+
+```bash
+rsnexus-plugin test algorithm \
+  --plugin-root /path/to/dev-plugins/algorithms/rs-nexus-algorithm-your-algo \
+  --sensor-plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-movesense
+```
+
+The algorithm harness reuses the reduced sensor-manager path to stream sensor
+samples, then routes those samples through a reduced compute-manager path. It
+prints compute events to the terminal and writes JSONL output under
+`<algorithm-plugin-root>/plugin-test/computed/`.
+
+This mirrors `rs-nexus-os` at the compute-result contract level:
+
+- samples are ingested into a compute-manager style path
+- results are routed by `stage` into `real_time`, `intermediate_time`, and
+  `consolidated_time`
+- algorithm-specific payload bodies are allowed to differ between plugins
+
+The harness does not impose a single algorithm payload schema. It aligns to the
+existing `rs-nexus-os` expectation that `stage` and compute-result routing are
+consistent, while result contents remain algorithm-specific.
+
+To use a built sensor bundle as the input source, replace
+`--sensor-plugin-root` with `--sensor-bundle-path`.
+
+To test a built algorithm bundle instead of source mode:
+
+```bash
+rsnexus-plugin test algorithm-bundle \
+  --bundle-path /path/to/plugin-build/your-algorithm.rsnxplugin \
+  --sensor-bundle-path /path/to/plugin-build/your-sensor.rsnxplugin
+```
+
 ## Build Output
 
 `rsnexus-plugin build` produces a Phase 1 `.rsnxplugin` ZIP archive for

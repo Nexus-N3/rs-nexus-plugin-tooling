@@ -372,6 +372,66 @@ By default built-bundle capture files are written under:
   plugin-test/
 ```
 
+Algorithm plugin example:
+
+```bash
+rsnexus-plugin test algorithm \
+  --plugin-root /path/to/dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity \
+  --sensor-plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-movesense \
+  --adapter-backend nexus_ble_gateway \
+  --gateway-serial-port /dev/serial/by-id/your_gateway_port \
+  --duration 15 \
+  --fail-on-no-results
+```
+
+The algorithm harness uses the selected sensor plugin to generate source-mode
+samples, feeds those samples through a reduced compute-manager flow, prints
+compute events in the terminal, and writes JSONL outputs under:
+
+```text
+dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity/
+  plugin-test/
+    sensor-data/
+      <sample-type>.csv
+      errors.log
+    computed/
+      real_time.jsonl
+      intermediate.jsonl
+      consolidated.jsonl
+```
+
+The harness is intended to mirror `rs-nexus-os` compute-result behavior:
+
+- sensor samples flow into a compute-manager style path
+- emitted compute results are split by `stage`
+- `real_time` outputs are sensor-level compute results
+- `intermediate` and `consolidated` outputs are algorithm-stage aggregates
+- algorithm payload bodies are not normalized across plugins
+
+This is deliberate. Different algorithms emit different result content. The
+shared contract is the compute-result routing envelope, especially `stage`, not
+a single shared payload schema for all algorithms.
+
+Built algorithm bundle example with a built sensor bundle:
+
+```bash
+rsnexus-plugin test algorithm-bundle \
+  --bundle-path /path/to/dev-plugins/plugin-builds/algorithms/rs-nexus-algorithm-standard-loading-intensity-0.1.0.rsnxplugin \
+  --sensor-bundle-path /path/to/dev-plugins/plugin-builds/sensors/rs-nexus-sensor-movesense-0.1.2.rsnxplugin \
+  --adapter-backend nexus_ble_gateway \
+  --gateway-serial-port /dev/serial/by-id/your_gateway_port \
+  --duration 15 \
+  --fail-on-no-results
+```
+
+`test algorithm` accepts either:
+
+- `--sensor-plugin-root /path/to/source-plugin`
+- `--sensor-bundle-path /path/to/built-sensor.rsnxplugin`
+
+`test algorithm-bundle` accepts the same sensor input choices while loading the
+algorithm itself from `--bundle-path`.
+
 ## Scaffold A Sensor Plugin
 
 Run the command from anywhere using the shared tooling CLI:

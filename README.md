@@ -330,13 +330,11 @@ By default the harness writes captured output under the plugin repository:
 
 ```text
 dev-plugins/sensors/rs-nexus-sensor-movesense/
-  plugin-build/
-    harness-captures/
-      rs-nexus-sensor-movesense/
-        ecg.csv
-        hr.csv
-        temp.csv
-        errors.log
+  plugin-test/
+    ecg.csv
+    hr.csv
+    temp.csv
+    errors.log
 ```
 
 These CSV files are intended for developer inspection after the run. The
@@ -344,9 +342,35 @@ developer can analyze them with spreadsheets, Python, plotting tools, or any
 other preferred workflow.
 
 The `test sensor` command is provided by the shared tooling CLI. It launches
-the harness with the plugin's own `.venv/bin/python`, not the currently active
-shell Python. This keeps plugin dependencies isolated while keeping the CLI and
-harness out of plugin environments.
+the harness in the tooling environment and adds the plugin `.venv`
+site-packages for plugin-side dependencies. This keeps the CLI and harness out
+of plugin environments while still using plugin-local dependencies during the
+test run.
+
+By default, `rsnexus-plugin test sensor` does not reinstall the SDK or rebuild
+the plugin. It is intended for source-mode testing before bundle creation. Use
+`--refresh-env` only when you explicitly want to resync the plugin `.venv`.
+
+This command is not currently a built-bundle validation command. Validation of
+the final `.rsnxplugin` can be done locally with `rsnexus-plugin test
+sensor-bundle` or after installation into `rs-nexus-os`.
+
+Built bundle example:
+
+```bash
+rsnexus-plugin test sensor-bundle \
+  --bundle-path /path/to/dev-plugins/plugin-builds/sensors/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin \
+  --adapter-backend bleak \
+  --duration 15 \
+  --fail-on-no-data
+```
+
+By default built-bundle capture files are written under:
+
+```text
+/path/to/dev-plugins/sensors/rs-nexus-sensor-movella-dot/
+  plugin-test/
+```
 
 ## Scaffold A Sensor Plugin
 
@@ -528,6 +552,9 @@ Do not use a shared plugin development environment for multiple plugins.
 ## Build A Plugin Bundle
 
 The build command produces a Phase 1 `.rsnxplugin` ZIP bundle compatible with the `rs_nexus_plugins` installer in `rs-nexus-os`.
+
+If a bundle with the same filename already exists in the output directory, it
+is replaced automatically.
 
 Basic usage:
 

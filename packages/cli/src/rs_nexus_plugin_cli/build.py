@@ -63,6 +63,7 @@ def build_plugin_bundle(
     extra_artifacts: list[Path] | None = None,
 ) -> Path:
     """Build a Phase 1 .rsnxplugin archive from a plugin source repo."""
+    _ = force
     plugin_root = plugin_root.resolve()
     output_dir = output_dir.resolve()
     plugin_python = _plugin_python(plugin_root)
@@ -117,8 +118,6 @@ def build_plugin_bundle(
         bundle_path = output_dir / bundle_name
 
         if bundle_path.exists():
-            if not force:
-                raise FileExistsError(f"Bundle already exists: {bundle_path}")
             bundle_path.unlink()
 
         archive_root = build_root / "archive"

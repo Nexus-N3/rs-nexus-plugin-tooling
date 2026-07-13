@@ -58,9 +58,15 @@ Use the shared CLI to execute a sensor plugin test run:
 rsnexus-plugin test sensor --plugin-root /path/to/plugin
 ```
 
-The CLI harness launches the plugin's own `.venv/bin/python` for the runtime
-portion, so plugin dependencies stay isolated even though the harness lives in
-the tooling environment.
+The CLI harness runs in the tooling environment and adds the plugin `.venv`
+site-packages for the runtime portion, so plugin dependencies stay isolated
+even though the harness lives in the tooling environment.
+
+To test a built `.rsnxplugin` bundle instead of source mode:
+
+```bash
+rsnexus-plugin test sensor-bundle --bundle-path /path/to/plugin-build/your-plugin.rsnxplugin
+```
 
 ## Build Output
 
@@ -74,6 +80,9 @@ rsnexus-plugin build --plugin-root /path/to/plugin --output-dir /tmp/plugin-buil
 ```
 
 This writes the final bundle into the directory passed by `--output-dir`.
+
+If a bundle with the same filename already exists in that directory, it is
+replaced automatically.
 
 When omitted, the CLI default is `plugin-build/`. This is intentional so the
 final `.rsnxplugin` output does not collide with Python build working

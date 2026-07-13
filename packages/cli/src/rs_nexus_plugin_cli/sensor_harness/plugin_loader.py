@@ -1,4 +1,4 @@
-"""Source-tree loading helpers for SDK-side sensor harness execution."""
+"""Plugin loading helpers for source-tree and built-bundle harness execution."""
 
 from __future__ import annotations
 
@@ -8,17 +8,37 @@ import json
 import sys
 from pathlib import Path
 
-from rs_nexus_plugin_sdk import SensorBase
+from rs_nexus_plugin_sdk.sensor_base import SensorBase
 
 from .config import HarnessPluginTarget
 
 
 def load_plugin_manifest(plugin_root: Path) -> dict:
-    """Load and minimally validate a plugin manifest from a source tree."""
-    manifest_path = plugin_root / "plugin.json"
-    if not manifest_path.is_file():
-        raise FileNotFoundError(f"Not a plugin source repo: missing plugin.json in {plugin_root}")
-    return json.loads(manifest_path.read_text(encoding="utf-8"))
+    """Load and normalize a plugin manifest from source or extracted bundle."""
+    plugin_root = plugin_root.resolve()
+    source_manifest_path = plugin_root / "plugin.json"
+    if source_manifest_path.is_file():
+        return json.loads(source_manifest_path.read_text(encoding="utf-8"))
+
+    bundle_manifest_path = plugin_root / "manifest.json"
+    if bundle_manifest_path.is_file():
+        manifest = json.loads(bundle_manifest_path.read_text(encoding="utf-8"))
+        entrypoint = manifest.get("entrypoint") or {}
+        module_name = entrypoint.get("module")
+        callable_name = entrypoint.get("callable")
+        if not module_name or not callable_name:
+            raise ValueError(f"Invalid bundle manifest entrypoint in {bundle_manifest_path}")
+        return {
+            "plugin_id": manifest["plugin_id"],
+            "plugin_type": manifest["plugin_type"],
+            "display_name": manifest.get("display_name"),
+            "entry_point": f"{module_name}:{callable_name}",
+            "bundle_manifest": manifest,
+        }
+
+    raise FileNotFoundError(
+        f"Not a plugin source repo or extracted bundle: missing plugin.json/manifest.json in {plugin_root}"
+    )
 
 
 def load_sensor_target(plugin_root: Path) -> HarnessPluginTarget:
@@ -28,11 +48,7 @@ def load_sensor_target(plugin_root: Path) -> HarnessPluginTarget:
     if manifest.get("plugin_type") != "sensor":
         raise ValueError("Sensor harness only supports sensor plugins")
 
-    src_dir = plugin_root / "src"
-    if not src_dir.is_dir():
-        raise FileNotFoundError(f"Plugin source layout missing src/: {src_dir}")
-
-    sensor_cls = _import_sensor_class(src_dir, manifest["entry_point"])
+    sensor_cls = _import_sensor_class(_src_dir_or_none(plugin_root), manifest["entry_point"])
     spec = sensor_cls.load_raw_spec()
     return HarnessPluginTarget(
         plugin_root=plugin_root,
@@ -47,23 +63,27 @@ def load_sensor_target(plugin_root: Path) -> HarnessPluginTarget:
 def load_sensor_class(plugin_root: Path):
     """Load the sensor class declared by the plugin entry point."""
     manifest = load_plugin_manifest(plugin_root)
+    return _import_sensor_class(_src_dir_or_none(plugin_root), manifest["entry_point"])
+
+
+def _src_dir_or_none(plugin_root: Path) -> Path | None:
     src_dir = plugin_root / "src"
-    if not src_dir.is_dir():
-        raise FileNotFoundError(f"Plugin source layout missing src/: {src_dir}")
-    return _import_sensor_class(src_dir, manifest["entry_point"])
+    return src_dir if src_dir.is_dir() else None
 
 
-def _import_sensor_class(src_dir: Path, entry_point: str):
+def _import_sensor_class(src_dir: Path | None, entry_point: str):
     module_name, _, attr_name = entry_point.partition(":")
     if not module_name or not attr_name:
         raise ValueError(f"Invalid entry point: {entry_point}")
 
-    sys.path.insert(0, str(src_dir))
+    if src_dir is not None:
+        sys.path.insert(0, str(src_dir))
     try:
         module = importlib.import_module(module_name)
         sensor_cls = getattr(module, attr_name)
     finally:
-        sys.path.pop(0)
+        if src_dir is not None:
+            sys.path.pop(0)
 
     if not inspect.isclass(sensor_cls):
         raise TypeError(f"Entry point is not a class: {entry_point}")

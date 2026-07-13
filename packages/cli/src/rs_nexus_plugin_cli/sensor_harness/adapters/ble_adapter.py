@@ -5,8 +5,9 @@ from __future__ import annotations
 import asyncio
 from types import SimpleNamespace
 
+from rs_nexus_plugin_sdk.types.connections import ConnectionStatus
+
 from ..ble_runtime import HarnessBLERuntimeConfig
-from ...types.connections import ConnectionStatus
 
 
 class BLEAdapter:

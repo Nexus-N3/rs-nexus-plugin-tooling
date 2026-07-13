@@ -119,10 +119,9 @@ def build_harness_config(args: argparse.Namespace) -> HarnessConfig:
     )
 
 
-def default_output_dir(plugin_root: Path, plugin_id: str) -> Path:
+def default_output_dir(plugin_root: Path) -> Path:
     """Return the default capture output directory for a plugin harness run."""
-    safe_plugin_id = plugin_id.replace("/", "_")
-    return plugin_root / "plugin-build" / "harness-captures" / safe_plugin_id
+    return plugin_root / "plugin-test"
 
 
 def serialize_payload(value):
@@ -148,7 +147,7 @@ async def run_sensor_test(config: HarnessConfig, *, output_dir: Path | None = No
     manifest = load_plugin_manifest(plugin_root)
     sensor_cls = load_sensor_class(plugin_root)
     target = load_sensor_target(plugin_root)
-    capture_dir = (output_dir or default_output_dir(plugin_root, target.plugin_id)).resolve()
+    capture_dir = (output_dir or default_output_dir(plugin_root)).resolve()
     capture_writer = CsvCaptureWriter(capture_dir)
 
     try:

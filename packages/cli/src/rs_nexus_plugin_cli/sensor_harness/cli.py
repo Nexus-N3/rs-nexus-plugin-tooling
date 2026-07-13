@@ -24,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        help="Optional capture directory. Defaults to plugin-build/harness-captures/<plugin-id>/.",
+        help="Optional capture directory. Defaults to <plugin-root>/plugin-test/.",
     )
     parser.add_argument(
         "--attribute",

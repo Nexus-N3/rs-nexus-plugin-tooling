@@ -6,6 +6,8 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+from rs_nexus_plugin_sdk.types.connections import ConnectionStatus
+
 from ..ble_runtime import HarnessBLERuntimeConfig
 from .gateway_ble_client import (
     GatewaySerialClient,
@@ -13,7 +15,6 @@ from .gateway_ble_client import (
     StreamFrame,
     discovered_devices_to_discovery_map,
 )
-from ...types.connections import ConnectionStatus
 
 
 @dataclass

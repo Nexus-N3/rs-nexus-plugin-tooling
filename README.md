@@ -256,12 +256,6 @@ The runtime consumes the final bundle.
 
 ## Current Sensor Harness Flow
 
-The current full sensor harness entry point is the standalone test script:
-
-```bash
-python3 rs-nexus-plugin-tooling/scripts/test_sensor_plugin.py --help
-```
-
 Use this flow while developing a sensor plugin:
 
 ```text
@@ -307,8 +301,8 @@ Then run the Movesense harness from the workspace root or from the tooling
 repository:
 
 ```bash
-python3 rs-nexus-plugin-tooling/scripts/test_sensor_plugin.py \
-  --plugin-root dev-plugins/sensors/rs-nexus-sensor-movesense \
+rsnexus-plugin test sensor \
+  --plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-movesense \
   --adapter-backend nexus_ble_gateway \
   --gateway-serial-port /dev/serial/by-id/your_gateway_port \
   --duration 15 \
@@ -318,8 +312,8 @@ python3 rs-nexus-plugin-tooling/scripts/test_sensor_plugin.py \
 If you want direct host BLE instead of the gateway backend:
 
 ```bash
-python3 rs-nexus-plugin-tooling/scripts/test_sensor_plugin.py \
-  --plugin-root dev-plugins/sensors/rs-nexus-sensor-movesense \
+rsnexus-plugin test sensor \
+  --plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-movesense \
   --adapter-backend bleak \
   --duration 15 \
   --fail-on-no-data
@@ -336,18 +330,47 @@ By default the harness writes captured output under the plugin repository:
 
 ```text
 dev-plugins/sensors/rs-nexus-sensor-movesense/
-  plugin-build/
-    harness-captures/
-      rs-nexus-sensor-movesense/
-        ecg.csv
-        hr.csv
-        temp.csv
-        errors.log
+  plugin-test/
+    ecg.csv
+    hr.csv
+    temp.csv
+    errors.log
 ```
 
 These CSV files are intended for developer inspection after the run. The
 developer can analyze them with spreadsheets, Python, plotting tools, or any
 other preferred workflow.
+
+The `test sensor` command is provided by the shared tooling CLI. It launches
+the harness in the tooling environment and adds the plugin `.venv`
+site-packages for plugin-side dependencies. This keeps the CLI and harness out
+of plugin environments while still using plugin-local dependencies during the
+test run.
+
+By default, `rsnexus-plugin test sensor` does not reinstall the SDK or rebuild
+the plugin. It is intended for source-mode testing before bundle creation. Use
+`--refresh-env` only when you explicitly want to resync the plugin `.venv`.
+
+This command is not currently a built-bundle validation command. Validation of
+the final `.rsnxplugin` can be done locally with `rsnexus-plugin test
+sensor-bundle` or after installation into `rs-nexus-os`.
+
+Built bundle example:
+
+```bash
+rsnexus-plugin test sensor-bundle \
+  --bundle-path /path/to/dev-plugins/plugin-builds/sensors/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin \
+  --adapter-backend bleak \
+  --duration 15 \
+  --fail-on-no-data
+```
+
+By default built-bundle capture files are written under:
+
+```text
+/path/to/dev-plugins/sensors/rs-nexus-sensor-movella-dot/
+  plugin-test/
+```
 
 ## Scaffold A Sensor Plugin
 
@@ -529,6 +552,9 @@ Do not use a shared plugin development environment for multiple plugins.
 ## Build A Plugin Bundle
 
 The build command produces a Phase 1 `.rsnxplugin` ZIP bundle compatible with the `rs_nexus_plugins` installer in `rs-nexus-os`.
+
+If a bundle with the same filename already exists in the output directory, it
+is replaced automatically.
 
 Basic usage:
 
@@ -786,7 +812,7 @@ Algorithm plugins already receive per-sensor data through their existing sample 
 
 Sensor plugins should not need to depend directly on BLE backends such as `bleak` for normal packaging.
 
-Runtime BLE operations belong to `rs-nexus-os` today and to the future harness adapter layer when source-mode testing is added.
+Runtime BLE operations belong to `rs-nexus-os` in deployment and to the CLI harness adapter layer during source-mode plugin testing.
 
 ## Test A Sensor Plugin
 
@@ -805,7 +831,9 @@ The harness:
 - loads the plugin from src/
 - resolves the manifest entry point
 - instantiates the sensor class
-- validates spec/listener wiring
+- uses the SDK sensor manager with the selected BLE adapter backend
+- exercises discovery, connection, streaming, stop, and disconnect
+- captures emitted data to CSV for developer inspection
 - probes the optional consume_input hook
 ```
 

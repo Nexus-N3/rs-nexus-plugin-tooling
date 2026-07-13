@@ -24,6 +24,8 @@ fi
 VENV_PYTHON="$VENV_DIR/bin/python"
 VENV_PIP="$VENV_DIR/bin/pip"
 VENV_CLI="$VENV_DIR/bin/rsnexus-plugin"
+USER_BIN_DIR="${RS_NEXUS_PLUGIN_TOOLING_BIN_DIR:-$HOME/.local/bin}"
+USER_CLI_LINK="$USER_BIN_DIR/rsnexus-plugin"
 
 if [[ ! -x "$VENV_PYTHON" || ! -x "$VENV_PIP" ]]; then
   echo "Invalid virtual environment at: $VENV_DIR" >&2
@@ -44,19 +46,28 @@ echo "Installing rs-nexus-plugin-cli in editable mode"
 echo "Validating CLI"
 "$VENV_CLI" --help >/dev/null
 
+echo "Installing PATH wrapper"
+mkdir -p "$USER_BIN_DIR"
+cat >"$USER_CLI_LINK" <<EOF
+#!/usr/bin/env bash
+exec "$VENV_CLI" "\$@"
+EOF
+chmod 755 "$USER_CLI_LINK"
+
 cat <<EOF
 
 RS Nexus plugin tooling is installed.
 
-Use it in this shell with:
-  source "$VENV_DIR/bin/activate"
+Use the shared CLI from anywhere:
+  "$USER_CLI_LINK" init sensor my-sensor-plugin
+  "$USER_CLI_LINK" init algorithm my-algorithm-plugin
 
-Or call it directly:
+Or call the tooling virtualenv entry point directly:
   "$VENV_CLI" init sensor my-sensor-plugin
   "$VENV_CLI" init algorithm my-algorithm-plugin
 
-To make rsnexus-plugin available without activating the venv, add this to PATH:
-  export PATH="$VENV_DIR/bin:\$PATH"
+If "$USER_BIN_DIR" is not already on PATH, add:
+  export PATH="$USER_BIN_DIR:\$PATH"
 
 If you prefer a shared plugin-development environment instead, install:
   pip install -e "$SCRIPT_DIR/packages/sdk"

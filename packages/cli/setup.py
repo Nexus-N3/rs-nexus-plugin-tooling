@@ -15,7 +15,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "rsnexus-plugin=rs_nexus_plugin_cli.main:main",
+            "nx3-plugin=rs_nexus_plugin_cli.main:main",
         ],
     },
 )

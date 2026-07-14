@@ -23,9 +23,9 @@ fi
 
 VENV_PYTHON="$VENV_DIR/bin/python"
 VENV_PIP="$VENV_DIR/bin/pip"
-VENV_CLI="$VENV_DIR/bin/rsnexus-plugin"
+VENV_CLI="$VENV_DIR/bin/nx3-plugin"
 USER_BIN_DIR="${RS_NEXUS_PLUGIN_TOOLING_BIN_DIR:-$HOME/.local/bin}"
-USER_CLI_LINK="$USER_BIN_DIR/rsnexus-plugin"
+USER_CLI_LINK="$USER_BIN_DIR/nx3-plugin"
 
 if [[ ! -x "$VENV_PYTHON" || ! -x "$VENV_PIP" ]]; then
   echo "Invalid virtual environment at: $VENV_DIR" >&2

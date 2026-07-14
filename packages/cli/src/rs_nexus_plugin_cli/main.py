@@ -21,7 +21,7 @@ from rs_nexus_plugin_cli.plugin_env import (
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level CLI parser."""
-    parser = argparse.ArgumentParser(prog="rsnexus-plugin")
+    parser = argparse.ArgumentParser(prog="nx3-plugin")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     init_parser = subparsers.add_parser("init", help="Scaffold a new plugin")

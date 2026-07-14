@@ -7,7 +7,7 @@ from pathlib import Path
 
 from .client import SystemTestClient
 from .inventory import detect_current_plugin_context, load_installed_algorithms, load_installed_sensor_options
-from .models import AlgorithmOption, SensorOption, SubjectPlan
+from .models import AlgorithmOption, SensorAssignment, SensorOption, SubjectPlan
 from . import protocol as mt
 from .wizard import WizardCancelled, prompt_bool, prompt_choice, prompt_int, prompt_text
 
@@ -41,19 +41,13 @@ def run_system_test(*, start_dir: Path) -> int:
             print("No installed sensor plugins are visible to the running rs-nexus-os.")
             return 1
 
-        selected_sensor = _prompt_for_sensor(sensors, current_plugin)
-        algorithm = _prompt_for_algorithm(selected_sensor, live_algorithms, current_plugin)
-        subject_plan = _prompt_for_subject_plan(selected_sensor)
-        identify_enabled = selected_sensor.supports_identify and prompt_bool(
+        subject_plan = _prompt_for_subject_plan(sensors, live_algorithms, current_plugin)
+        identify_enabled = any(item.sensor.supports_identify for item in subject_plan.sensor_assignments) and prompt_bool(
             "Run identify prompts after connect?",
             default=False,
         )
 
-        subject_payload = _build_subject_payload(
-            sensor=selected_sensor,
-            algorithm=algorithm,
-            subject_plan=subject_plan,
-        )
+        subject_payload = _build_subject_payload(subject_plan=subject_plan)
         subject_ids = [entry["subject_id"] for entry in subject_payload]
 
         print("")
@@ -89,30 +83,36 @@ def run_system_test(*, start_dir: Path) -> int:
 
         if identify_enabled:
             for subject_id in subject_ids:
-                for location in subject_plan.locations:
-                    response = prompt_text(
-                        f"Press Enter to identify {subject_id} at {location}, or type skip to continue. "
-                    ).strip().lower()
-                    if response == "skip":
+                for assignment in subject_plan.sensor_assignments:
+                    if not assignment.sensor.supports_identify:
                         continue
-                    client.send_command(
-                        {
-                            "type": mt.CMD_IDENTIFY_SENSOR,
-                            "payload": {"subject_id": subject_id, "location": location},
-                        }
-                    )
-                    try:
-                        _wait_for_success(client, mt.EVT_SENSOR_IDENTIFIED, timeout_s=10.0)
-                    except TimeoutError:
-                        print("Identify event timed out; continuing.")
+                    for location in assignment.locations:
+                        response = prompt_text(
+                            f"Press Enter to identify {subject_id} {assignment.sensor.display_name} at {location}, or type skip to continue. "
+                        ).strip().lower()
+                        if response == "skip":
+                            continue
+                        client.send_command(
+                            {
+                                "type": mt.CMD_IDENTIFY_SENSOR,
+                                "payload": {"subject_id": subject_id, "location": location},
+                            }
+                        )
+                        try:
+                            _wait_for_success(client, mt.EVT_SENSOR_IDENTIFIED, timeout_s=10.0)
+                        except TimeoutError:
+                            print("Identify event timed out; continuing.")
 
         print("")
         print("System test setup complete.")
-        print(f"  sensor: {selected_sensor.display_name}")
-        print(f"  algorithm: {algorithm.name}")
         print(f"  subjects: {', '.join(subject_plan.subject_ids)}")
-        print(f"  sensors_per_subject: {subject_plan.sensor_count}")
-        print(f"  locations: {', '.join(subject_plan.locations)}")
+        for assignment in subject_plan.sensor_assignments:
+            print(
+                "  sensor_assignment: "
+                f"{assignment.sensor.display_name} x{assignment.sensor_count} "
+                f"algorithm={assignment.algorithm.name} "
+                f"locations={', '.join(assignment.locations)}"
+            )
         prompt_text("Press Enter to start streaming. ")
         client.send_command(
             {
@@ -156,10 +156,14 @@ def run_system_test(*, start_dir: Path) -> int:
         payload = drained.get("payload", {})
         print("")
         print("System test complete.")
-        print(f"  sensor: {selected_sensor.display_name}")
-        print(f"  algorithm: {algorithm.name}")
         print(f"  subjects: {', '.join(subject_plan.subject_ids)}")
-        print(f"  locations: {', '.join(subject_plan.locations)}")
+        for assignment in subject_plan.sensor_assignments:
+            print(
+                "  sensor_assignment: "
+                f"{assignment.sensor.display_name} x{assignment.sensor_count} "
+                f"algorithm={assignment.algorithm.name} "
+                f"locations={', '.join(assignment.locations)}"
+            )
         print(f"  session_dir: {payload.get('session_dir')}")
         if payload.get("session_archive_path"):
             print(f"  session_archive_path: {payload.get('session_archive_path')}")
@@ -173,12 +177,28 @@ def run_system_test(*, start_dir: Path) -> int:
 
 
 def _check_server_ready(client: SystemTestClient) -> dict:
-    client.send_command({"type": mt.CMD_IS_SERVER_READY, "payload": {}})
-    event = client.wait_for_event(lambda item: item.get("type") == mt.EVT_SERVER_READY, timeout_s=10.0)
-    payload = event.get("payload", {})
-    if payload.get("msg") != "System Server Ready":
-        raise RuntimeError("rs-nexus-os is not ready for system testing.")
-    return event
+    print("Checking rs-nexus-os readiness...")
+    deadline = time.monotonic() + 10.0
+    last_error: TimeoutError | None = None
+    while time.monotonic() < deadline:
+        client.send_command({"type": mt.CMD_IS_SERVER_READY, "payload": {}})
+        try:
+            event = client.wait_for_event(
+                lambda item: item.get("type") == mt.EVT_SERVER_READY,
+                timeout_s=min(2.0, max(deadline - time.monotonic(), 0.1)),
+            )
+            payload = event.get("payload", {})
+            if payload.get("msg") != "System Server Ready":
+                raise RuntimeError("rs-nexus-os responded but is not ready for system testing.")
+            print("rs-nexus-os is ready.")
+            return event
+        except TimeoutError as exc:
+            last_error = exc
+            continue
+    raise RuntimeError(
+        "Timed out waiting for rs-nexus-os readiness on the standard ZeroMQ gateway. "
+        "Confirm rs-nexus-os is running and the zeromq gateway is active."
+    ) from last_error
 
 
 def _resolve_available_sensors(live_sensor_names: set[str]) -> list[SensorOption]:
@@ -187,6 +207,59 @@ def _resolve_available_sensors(live_sensor_names: set[str]) -> list[SensorOption
         if _normalize(sensor.sensor_type) in live_sensor_names:
             sensors.append(sensor)
     return sensors
+
+
+def _prompt_for_subject_plan(
+    sensors: list[SensorOption],
+    live_algorithms: set[str],
+    current_plugin,
+) -> SubjectPlan:
+    subject_count = prompt_int("How many subjects should be used (1-4)? ", minimum=1, maximum=4)
+    sensor_assignments = _prompt_for_sensor_assignments(sensors, live_algorithms, current_plugin)
+    subject_ids = [f"subject{index}" for index in range(1, subject_count + 1)]
+    return SubjectPlan(subject_ids=subject_ids, sensor_assignments=sensor_assignments)
+
+
+def _prompt_for_sensor_assignments(
+    sensors: list[SensorOption],
+    live_algorithms: set[str],
+    current_plugin,
+) -> list[SensorAssignment]:
+    assignments: list[SensorAssignment] = []
+    used_plugin_ids: set[str] = set()
+    used_locations: set[str] = set()
+    total_sensor_count = 0
+    while True:
+        available_sensors = [sensor for sensor in sensors if sensor.plugin_id not in used_plugin_ids]
+        if not available_sensors:
+            break
+        sensor = _prompt_for_sensor(available_sensors, current_plugin if not assignments else None)
+        algorithm = _prompt_for_algorithm(sensor, live_algorithms, current_plugin if not assignments else None)
+        max_sensor_count = min(len(sensor.locations), 8 - total_sensor_count)
+        if max_sensor_count <= 0:
+            raise RuntimeError("The selected sensor set exceeds the maximum allowed sensors per subject.")
+        sensor_count = prompt_int(
+            f"How many {sensor.display_name} sensors per subject (1-{max_sensor_count})? ",
+            minimum=1,
+            maximum=max_sensor_count,
+        )
+        locations = _prompt_for_locations(sensor, sensor_count, used_locations)
+        assignments.append(
+            SensorAssignment(
+                sensor=sensor,
+                algorithm=algorithm,
+                sensor_count=sensor_count,
+                locations=locations,
+            )
+        )
+        used_plugin_ids.add(sensor.plugin_id)
+        used_locations.update(locations)
+        total_sensor_count += sensor_count
+        if total_sensor_count >= 8:
+            break
+        if not prompt_bool("Add another sensor family to this test?", default=False):
+            break
+    return assignments
 
 
 def _prompt_for_sensor(sensors: list[SensorOption], current_plugin) -> SensorOption:
@@ -202,6 +275,57 @@ def _prompt_for_sensor(sensors: list[SensorOption], current_plugin) -> SensorOpt
     selected = prompt_choice("Choose the sensor plugin to test: ", options)
     return sensors[selected]
 
+
+def _prompt_for_locations(sensor: SensorOption, sensor_count: int, used_locations: set[str]) -> list[str]:
+    selected_locations: list[str] = []
+    for index in range(sensor_count):
+        remaining = [
+            item for item in sensor.locations
+            if item not in selected_locations and item not in used_locations
+        ]
+        if not remaining:
+            raise RuntimeError(
+                f"Sensor '{sensor.display_name}' does not have enough unique remaining locations for this subject."
+            )
+        choice = prompt_choice(
+            f"Choose location {index + 1} for {sensor.display_name}: ",
+            remaining,
+        )
+        selected_locations.append(remaining[choice])
+    return selected_locations
+
+
+def _build_subject_payload(*, subject_plan: SubjectPlan) -> list[dict]:
+    sensors_payload = [
+        {
+            "local_name": assignment.sensor.display_name,
+            "number_of": assignment.sensor_count,
+            "compute_algorithm": {
+                "name": assignment.algorithm.name,
+                "inputs": assignment.algorithm.inputs,
+            },
+            "locations": list(assignment.locations),
+        }
+        for assignment in subject_plan.sensor_assignments
+    ]
+    return [
+        {
+            "subject_id": subject_id,
+            "sensors": [
+                {
+                    "local_name": item["local_name"],
+                    "number_of": item["number_of"],
+                    "compute_algorithm": {
+                        "name": item["compute_algorithm"]["name"],
+                        "inputs": dict(item["compute_algorithm"]["inputs"]),
+                    },
+                    "locations": list(item["locations"]),
+                }
+                for item in sensors_payload
+            ],
+        }
+        for subject_id in subject_plan.subject_ids
+    ]
 
 def _prompt_for_algorithm(
     sensor: SensorOption,
@@ -252,51 +376,6 @@ def _prompt_for_algorithm(
     ]
     selected = prompt_choice("Choose the algorithm to use: ", options)
     return candidates[selected]
-
-
-def _prompt_for_subject_plan(sensor: SensorOption) -> SubjectPlan:
-    subject_count = prompt_int("How many subjects should be used (1-4)? ", minimum=1, maximum=4)
-    max_sensor_count = max(1, len(sensor.locations))
-    sensor_count = prompt_int(
-        f"How many {sensor.display_name} sensors per subject (1-{max_sensor_count})? ",
-        minimum=1,
-        maximum=max_sensor_count,
-    )
-    available_locations = list(sensor.locations)
-    selected_locations: list[str] = []
-    for index in range(sensor_count):
-        remaining = [item for item in available_locations if item not in selected_locations]
-        choice = prompt_choice(
-            f"Choose location {index + 1}: ",
-            remaining,
-        )
-        selected_locations.append(remaining[choice])
-    subject_ids = [f"subject{index}" for index in range(1, subject_count + 1)]
-    return SubjectPlan(subject_ids=subject_ids, sensor_count=sensor_count, locations=selected_locations)
-
-
-def _build_subject_payload(
-    *,
-    sensor: SensorOption,
-    algorithm: AlgorithmOption,
-    subject_plan: SubjectPlan,
-) -> list[dict]:
-    sensor_payload = {
-        "local_name": sensor.display_name,
-        "number_of": subject_plan.sensor_count,
-        "compute_algorithm": {
-            "name": algorithm.name,
-            "inputs": algorithm.inputs,
-        },
-        "locations": list(subject_plan.locations),
-    }
-    return [
-        {
-            "subject_id": subject_id,
-            "sensors": [sensor_payload.copy()],
-        }
-        for subject_id in subject_plan.subject_ids
-    ]
 
 
 def _wait_for_success(client: SystemTestClient, event_type: str, *, timeout_s: float) -> dict:

@@ -33,5 +33,12 @@ class CurrentPluginContext:
 @dataclass(frozen=True)
 class SubjectPlan:
     subject_ids: list[str]
+    sensor_assignments: list["SensorAssignment"]
+
+
+@dataclass(frozen=True)
+class SensorAssignment:
+    sensor: SensorOption
+    algorithm: AlgorithmOption
     sensor_count: int
     locations: list[str]

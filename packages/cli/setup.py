@@ -12,6 +12,7 @@ setup(
         "build>=1.2",
         "bleak>=0.22",
         "pyserial>=3.5",
+        "pyzmq>=25.1",
     ],
     entry_points={
         "console_scripts": [

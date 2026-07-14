@@ -13,6 +13,7 @@ from pathlib import Path
 from rs_nexus_plugin_cli.scaffold.algorithm import scaffold_algorithm_plugin
 from rs_nexus_plugin_cli.scaffold.sensor import scaffold_sensor_plugin
 from rs_nexus_plugin_cli.build import build_plugin_bundle
+from rs_nexus_plugin_cli.install import install_bundle
 from rs_nexus_plugin_cli.plugin_env import (
     prepare_plugin_venv,
     resolve_plugin_python,
@@ -125,6 +126,23 @@ def build_parser() -> argparse.ArgumentParser:
         "--force",
         action="store_true",
         help="Deprecated compatibility flag. Existing bundles of the same name/version are overwritten automatically.",
+    )
+
+    install_parser = subparsers.add_parser("install", help="Install a built .rsnxplugin bundle into rs-nexus-os")
+    install_parser.add_argument(
+        "--bundle-path",
+        required=True,
+        help="Path to the built .rsnxplugin bundle to install",
+    )
+    install_parser.add_argument(
+        "--no-activate",
+        action="store_true",
+        help="Install the bundle without activating it as the current plugin version",
+    )
+
+    subparsers.add_parser(
+        "system-test",
+        help="Run an interactive rs-nexus-os integration test against installed sensor and algorithm plugins",
     )
 
     test_parser = subparsers.add_parser("test", help="Run focused plugin development harnesses")
@@ -283,90 +301,69 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     """CLI entry point."""
     parser = build_parser()
-    args = parser.parse_args()
+    try:
+        args = parser.parse_args()
 
-    if args.command == "init" and args.plugin_type == "sensor":
-        print("Creating sensor plugin", args.plugin_id)
-        plugin_root = scaffold_sensor_plugin(
-            plugin_id=args.plugin_id,
-            display_name=args.display_name,
-            output_dir=Path(args.output_dir),
-            adapter=args.adapter,
-            sample_type=args.sample_type,
-            package_name=args.package_name,
-            manufacturer_id=args.manufacturer_id,
-            force=args.force,
-        )
-        prepare_plugin_venv(plugin_root)
-        return 0
-
-    if args.command == "init" and args.plugin_type == "algorithm":
-        print("Creating alogrithm plugin", args.plugin_id)
-        plugin_root = scaffold_algorithm_plugin(
-            plugin_id=args.plugin_id,
-            display_name=args.display_name,
-            output_dir=Path(args.output_dir),
-            package_name=args.package_name,
-            include_intermediate=args.with_intermediate,
-            include_consolidation=args.with_consolidation,
-            force=args.force,
-        )
-        prepare_plugin_venv(plugin_root)
-        return 0
-
-    if args.command == "build":
-        build_plugin_bundle(
-            plugin_root=Path(args.plugin_root),
-            output_dir=Path(args.output_dir),
-            force=args.force,
-            sdk_root=Path(args.sdk_root) if args.sdk_root else None,
-            include_sdk=not args.no_sdk,
-            extra_artifacts=[Path(path) for path in args.artifact],
-        )
-        return 0
-
-    if args.command == "test" and args.test_type == "sensor":
-        plugin_root = Path(args.plugin_root).resolve()
-        if args.refresh_env:
+        if args.command == "init" and args.plugin_type == "sensor":
+            print("Creating sensor plugin", args.plugin_id)
+            plugin_root = scaffold_sensor_plugin(
+                plugin_id=args.plugin_id,
+                display_name=args.display_name,
+                output_dir=Path(args.output_dir),
+                adapter=args.adapter,
+                sample_type=args.sample_type,
+                package_name=args.package_name,
+                manufacturer_id=args.manufacturer_id,
+                force=args.force,
+            )
             prepare_plugin_venv(plugin_root)
-        else:
-            resolve_plugin_python(plugin_root)
-        plugin_site_packages = resolve_plugin_site_packages(plugin_root)
-        completed = _run_sensor_harness(
-            plugin_root=plugin_root,
-            plugin_site_packages=plugin_site_packages,
-            adapter_backend=args.adapter_backend,
-            sensor_count=args.sensor_count,
-            duration=args.duration,
-            identify=args.identify,
-            location=args.location,
-            gateway_serial_port=args.gateway_serial_port,
-            gateway_baudrate=args.gateway_baudrate,
-            gateway_protocol_version=args.gateway_protocol_version,
-            output_dir=args.output_dir,
-            attributes=args.attribute,
-            fail_on_no_data=args.fail_on_no_data,
-        )
-        return completed.returncode
+            return 0
 
-    if args.command == "test" and args.test_type == "algorithm":
-        plugin_root = Path(args.plugin_root).resolve()
-        sensor_plugin_root, sensor_site_packages, _cleanup = _resolve_sensor_harness_target(
-            sensor_plugin_root=args.sensor_plugin_root,
-            sensor_bundle_path=args.sensor_bundle_path,
-            refresh_env=args.refresh_env,
-        )
-        if args.refresh_env:
+        if args.command == "init" and args.plugin_type == "algorithm":
+            print("Creating alogrithm plugin", args.plugin_id)
+            plugin_root = scaffold_algorithm_plugin(
+                plugin_id=args.plugin_id,
+                display_name=args.display_name,
+                output_dir=Path(args.output_dir),
+                package_name=args.package_name,
+                include_intermediate=args.with_intermediate,
+                include_consolidation=args.with_consolidation,
+                force=args.force,
+            )
             prepare_plugin_venv(plugin_root)
-        else:
-            resolve_plugin_python(plugin_root)
-        algorithm_site_packages = resolve_plugin_site_packages(plugin_root)
-        try:
-            completed = _run_algorithm_harness(
-                algorithm_plugin_root=plugin_root,
-                algorithm_site_packages=algorithm_site_packages,
-                sensor_plugin_root=sensor_plugin_root,
-                sensor_site_packages=sensor_site_packages,
+            return 0
+
+        if args.command == "build":
+            build_plugin_bundle(
+                plugin_root=Path(args.plugin_root),
+                output_dir=Path(args.output_dir),
+                force=args.force,
+                sdk_root=Path(args.sdk_root) if args.sdk_root else None,
+                include_sdk=not args.no_sdk,
+                extra_artifacts=[Path(path) for path in args.artifact],
+            )
+            return 0
+
+        if args.command == "install":
+            return install_bundle(
+                bundle_path=Path(args.bundle_path),
+                activate=not args.no_activate,
+            )
+
+        if args.command == "system-test":
+            from rs_nexus_plugin_cli.system_test.runner import run_system_test
+            return run_system_test(start_dir=Path.cwd())
+
+        if args.command == "test" and args.test_type == "sensor":
+            plugin_root = Path(args.plugin_root).resolve()
+            if args.refresh_env:
+                prepare_plugin_venv(plugin_root)
+            else:
+                resolve_plugin_python(plugin_root)
+            plugin_site_packages = resolve_plugin_site_packages(plugin_root)
+            completed = _run_sensor_harness(
+                plugin_root=plugin_root,
+                plugin_site_packages=plugin_site_packages,
                 adapter_backend=args.adapter_backend,
                 sensor_count=args.sensor_count,
                 duration=args.duration,
@@ -375,44 +372,27 @@ def main() -> int:
                 gateway_serial_port=args.gateway_serial_port,
                 gateway_baudrate=args.gateway_baudrate,
                 gateway_protocol_version=args.gateway_protocol_version,
-                subject_id=args.subject_id,
                 output_dir=args.output_dir,
-                sensor_attributes=args.attribute,
-                algorithm_inputs=args.algorithm_input,
-                fail_on_no_results=args.fail_on_no_results,
+                attributes=args.attribute,
+                fail_on_no_data=args.fail_on_no_data,
             )
             return completed.returncode
-        finally:
-            _cleanup()
 
-    if args.command == "test" and args.test_type == "algorithm-bundle":
-        bundle_path = Path(args.bundle_path).resolve()
-        with tempfile.TemporaryDirectory(prefix="rsnexus-algorithm-bundle-") as temp_dir:
-            temp_root = Path(temp_dir)
-            extracted_root = temp_root / "bundle"
-            extracted_root.mkdir(parents=True, exist_ok=True)
-            with zipfile.ZipFile(bundle_path, "r") as archive:
-                archive.extractall(extracted_root)
-
-            bundle_manifest = _read_bundle_manifest(extracted_root)
-            plugin_id = str(bundle_manifest["plugin_id"])
-            plugin_type = str(bundle_manifest["plugin_type"])
-            test_env_root = temp_root / "env"
-            algorithm_site_packages = _prepare_bundle_test_env(extracted_root, test_env_root)
-            algorithm_plugin_root = (
-                Path(args.plugin_root).resolve()
-                if args.plugin_root
-                else _infer_bundle_plugin_root(bundle_path, plugin_id, plugin_type)
-            )
+        if args.command == "test" and args.test_type == "algorithm":
+            plugin_root = Path(args.plugin_root).resolve()
             sensor_plugin_root, sensor_site_packages, _cleanup = _resolve_sensor_harness_target(
                 sensor_plugin_root=args.sensor_plugin_root,
                 sensor_bundle_path=args.sensor_bundle_path,
                 refresh_env=args.refresh_env,
             )
-            output_dir = args.output_dir or str(algorithm_plugin_root / "plugin-test")
+            if args.refresh_env:
+                prepare_plugin_venv(plugin_root)
+            else:
+                resolve_plugin_python(plugin_root)
+            algorithm_site_packages = resolve_plugin_site_packages(plugin_root)
             try:
                 completed = _run_algorithm_harness(
-                    algorithm_plugin_root=extracted_root,
+                    algorithm_plugin_root=plugin_root,
                     algorithm_site_packages=algorithm_site_packages,
                     sensor_plugin_root=sensor_plugin_root,
                     sensor_site_packages=sensor_site_packages,
@@ -425,7 +405,7 @@ def main() -> int:
                     gateway_baudrate=args.gateway_baudrate,
                     gateway_protocol_version=args.gateway_protocol_version,
                     subject_id=args.subject_id,
-                    output_dir=output_dir,
+                    output_dir=args.output_dir,
                     sensor_attributes=args.attribute,
                     algorithm_inputs=args.algorithm_input,
                     fail_on_no_results=args.fail_on_no_results,
@@ -434,45 +414,100 @@ def main() -> int:
             finally:
                 _cleanup()
 
-    if args.command == "test" and args.test_type == "sensor-bundle":
-        bundle_path = Path(args.bundle_path).resolve()
-        with tempfile.TemporaryDirectory(prefix="rsnexus-sensor-bundle-") as temp_dir:
-            temp_root = Path(temp_dir)
-            extracted_root = temp_root / "bundle"
-            extracted_root.mkdir(parents=True, exist_ok=True)
-            with zipfile.ZipFile(bundle_path, "r") as archive:
-                archive.extractall(extracted_root)
+        if args.command == "test" and args.test_type == "algorithm-bundle":
+            bundle_path = Path(args.bundle_path).resolve()
+            with tempfile.TemporaryDirectory(prefix="rsnexus-algorithm-bundle-") as temp_dir:
+                temp_root = Path(temp_dir)
+                extracted_root = temp_root / "bundle"
+                extracted_root.mkdir(parents=True, exist_ok=True)
+                with zipfile.ZipFile(bundle_path, "r") as archive:
+                    archive.extractall(extracted_root)
 
-            bundle_manifest = _read_bundle_manifest(extracted_root)
-            plugin_id = str(bundle_manifest["plugin_id"])
-            plugin_type = str(bundle_manifest["plugin_type"])
-            test_env_root = temp_root / "env"
-            bundle_site_packages = _prepare_bundle_test_env(extracted_root, test_env_root)
-            plugin_root = (
-                Path(args.plugin_root).resolve()
-                if args.plugin_root
-                else _infer_bundle_plugin_root(bundle_path, plugin_id, plugin_type)
-            )
-            output_dir = args.output_dir or str(plugin_root / "plugin-test")
-            completed = _run_sensor_harness(
-                plugin_root=extracted_root,
-                plugin_site_packages=bundle_site_packages,
-                adapter_backend=args.adapter_backend,
-                sensor_count=args.sensor_count,
-                duration=args.duration,
-                identify=args.identify,
-                location=args.location,
-                gateway_serial_port=args.gateway_serial_port,
-                gateway_baudrate=args.gateway_baudrate,
-                gateway_protocol_version=args.gateway_protocol_version,
-                output_dir=output_dir,
-                attributes=args.attribute,
-                fail_on_no_data=args.fail_on_no_data,
-            )
-            return completed.returncode
-    
-    parser.error("Unsupported command")
-    return 2
+                bundle_manifest = _read_bundle_manifest(extracted_root)
+                plugin_id = str(bundle_manifest["plugin_id"])
+                plugin_type = str(bundle_manifest["plugin_type"])
+                test_env_root = temp_root / "env"
+                algorithm_site_packages = _prepare_bundle_test_env(extracted_root, test_env_root)
+                algorithm_plugin_root = (
+                    Path(args.plugin_root).resolve()
+                    if args.plugin_root
+                    else _infer_bundle_plugin_root(bundle_path, plugin_id, plugin_type)
+                )
+                sensor_plugin_root, sensor_site_packages, _cleanup = _resolve_sensor_harness_target(
+                    sensor_plugin_root=args.sensor_plugin_root,
+                    sensor_bundle_path=args.sensor_bundle_path,
+                    refresh_env=args.refresh_env,
+                )
+                output_dir = args.output_dir or str(algorithm_plugin_root / "plugin-test")
+                try:
+                    completed = _run_algorithm_harness(
+                        algorithm_plugin_root=extracted_root,
+                        algorithm_site_packages=algorithm_site_packages,
+                        sensor_plugin_root=sensor_plugin_root,
+                        sensor_site_packages=sensor_site_packages,
+                        adapter_backend=args.adapter_backend,
+                        sensor_count=args.sensor_count,
+                        duration=args.duration,
+                        identify=args.identify,
+                        location=args.location,
+                        gateway_serial_port=args.gateway_serial_port,
+                        gateway_baudrate=args.gateway_baudrate,
+                        gateway_protocol_version=args.gateway_protocol_version,
+                        subject_id=args.subject_id,
+                        output_dir=output_dir,
+                        sensor_attributes=args.attribute,
+                        algorithm_inputs=args.algorithm_input,
+                        fail_on_no_results=args.fail_on_no_results,
+                    )
+                    return completed.returncode
+                finally:
+                    _cleanup()
+
+        if args.command == "test" and args.test_type == "sensor-bundle":
+            bundle_path = Path(args.bundle_path).resolve()
+            with tempfile.TemporaryDirectory(prefix="rsnexus-sensor-bundle-") as temp_dir:
+                temp_root = Path(temp_dir)
+                extracted_root = temp_root / "bundle"
+                extracted_root.mkdir(parents=True, exist_ok=True)
+                with zipfile.ZipFile(bundle_path, "r") as archive:
+                    archive.extractall(extracted_root)
+
+                bundle_manifest = _read_bundle_manifest(extracted_root)
+                plugin_id = str(bundle_manifest["plugin_id"])
+                plugin_type = str(bundle_manifest["plugin_type"])
+                test_env_root = temp_root / "env"
+                bundle_site_packages = _prepare_bundle_test_env(extracted_root, test_env_root)
+                plugin_root = (
+                    Path(args.plugin_root).resolve()
+                    if args.plugin_root
+                    else _infer_bundle_plugin_root(bundle_path, plugin_id, plugin_type)
+                )
+                output_dir = args.output_dir or str(plugin_root / "plugin-test")
+                completed = _run_sensor_harness(
+                    plugin_root=extracted_root,
+                    plugin_site_packages=bundle_site_packages,
+                    adapter_backend=args.adapter_backend,
+                    sensor_count=args.sensor_count,
+                    duration=args.duration,
+                    identify=args.identify,
+                    location=args.location,
+                    gateway_serial_port=args.gateway_serial_port,
+                    gateway_baudrate=args.gateway_baudrate,
+                    gateway_protocol_version=args.gateway_protocol_version,
+                    output_dir=output_dir,
+                    attributes=args.attribute,
+                    fail_on_no_data=args.fail_on_no_data,
+                )
+                return completed.returncode
+
+        parser.error("Unsupported command")
+        return 2
+    except KeyboardInterrupt:
+        print("Cancelled.", file=sys.stderr)
+        return 130
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
 
 
 def _run_sensor_harness(

@@ -85,7 +85,7 @@ Each plugin owns its own isolated Python environment.
 Example location:
 
 ```text
-dev-plugins/sensors/rs-nexus-sensor-movella-dot/.venv
+nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movella-dot/.venv
 ```
 
 It contains:
@@ -136,7 +136,7 @@ Recommended layout:
 <workspace>/
   rs-nexus-plugin-tooling/
   rs-nexus-os/
-  dev-plugins/
+  nexus-n3-plugin-catalog/
     sensors/
     algorithms/
     plugin-builds/
@@ -150,7 +150,7 @@ Example:
 rs-nexus-project/
   rs-nexus-plugin-tooling/
   rs-nexus-os/
-  dev-plugins/
+  nexus-n3-plugin-catalog/
     sensors/
       rs-nexus-sensor-movella-dot/
         .venv/
@@ -164,10 +164,10 @@ rs-nexus-project/
 
 Directory conventions:
 
-* sensor plugin repositories live under `dev-plugins/sensors/`
-* algorithm plugin repositories live under `dev-plugins/algorithms/`
-* built sensor bundles go under `dev-plugins/plugin-builds/sensors/`
-* built algorithm bundles go under `dev-plugins/plugin-builds/algorithms/`
+* sensor plugin repositories live under `nexus-n3-plugin-catalog/sensors/`
+* algorithm plugin repositories live under `nexus-n3-plugin-catalog/algorithms/`
+* built sensor bundles go under `nexus-n3-plugin-catalog/plugin-builds/sensors/`
+* built algorithm bundles go under `nexus-n3-plugin-catalog/plugin-builds/algorithms/`
 
 ## Requirements
 
@@ -272,10 +272,10 @@ Use this flow while developing a sensor plugin:
 Create the shared development directories:
 
 ```bash
-mkdir -p /path/to/dev-plugins/sensors
-mkdir -p /path/to/dev-plugins/algorithms
-mkdir -p /path/to/dev-plugins/plugin-builds/sensors
-mkdir -p /path/to/dev-plugins/plugin-builds/algorithms
+mkdir -p /path/to/nexus-n3-plugin-catalog/sensors
+mkdir -p /path/to/nexus-n3-plugin-catalog/algorithms
+mkdir -p /path/to/nexus-n3-plugin-catalog/plugin-builds/sensors
+mkdir -p /path/to/nexus-n3-plugin-catalog/plugin-builds/algorithms
 ```
 
 ## Test The Current Movesense Plugin Against The Harness
@@ -285,7 +285,7 @@ Assuming a workspace layout like:
 ```text
 <workspace>/
   rs-nexus-plugin-tooling/
-  dev-plugins/
+  nexus-n3-plugin-catalog/
     sensors/
       rs-nexus-sensor-movesense/
 ```
@@ -302,7 +302,7 @@ repository:
 
 ```bash
 rsnexus-plugin test sensor \
-  --plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-movesense \
+  --plugin-root /path/to/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movesense \
   --adapter-backend nexus_ble_gateway \
   --gateway-serial-port /dev/serial/by-id/your_gateway_port \
   --duration 15 \
@@ -313,7 +313,7 @@ If you want direct host BLE instead of the gateway backend:
 
 ```bash
 rsnexus-plugin test sensor \
-  --plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-movesense \
+  --plugin-root /path/to/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movesense \
   --adapter-backend bleak \
   --duration 15 \
   --fail-on-no-data
@@ -329,7 +329,7 @@ Optional useful flags:
 By default the harness writes captured output under the plugin repository:
 
 ```text
-dev-plugins/sensors/rs-nexus-sensor-movesense/
+nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movesense/
   plugin-test/
     ecg.csv
     hr.csv
@@ -359,7 +359,7 @@ Built bundle example:
 
 ```bash
 rsnexus-plugin test sensor-bundle \
-  --bundle-path /path/to/dev-plugins/plugin-builds/sensors/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin \
+  --bundle-path /path/to/nexus-n3-plugin-catalog/plugin-builds/sensors/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin \
   --adapter-backend bleak \
   --duration 15 \
   --fail-on-no-data
@@ -368,7 +368,7 @@ rsnexus-plugin test sensor-bundle \
 By default built-bundle capture files are written under:
 
 ```text
-/path/to/dev-plugins/sensors/rs-nexus-sensor-movella-dot/
+/path/to/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movella-dot/
   plugin-test/
 ```
 
@@ -376,8 +376,8 @@ Algorithm plugin example:
 
 ```bash
 rsnexus-plugin test algorithm \
-  --plugin-root /path/to/dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity \
-  --sensor-plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-movesense \
+  --plugin-root /path/to/nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-standard-loading-intensity \
+  --sensor-plugin-root /path/to/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movesense \
   --adapter-backend nexus_ble_gateway \
   --gateway-serial-port /dev/serial/by-id/your_gateway_port \
   --duration 15 \
@@ -389,7 +389,7 @@ samples, feeds those samples through a reduced compute-manager flow, prints
 compute events in the terminal, and writes JSONL outputs under:
 
 ```text
-dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity/
+nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-standard-loading-intensity/
   plugin-test/
     sensor-data/
       <sample-type>.csv
@@ -416,8 +416,8 @@ Built algorithm bundle example with a built sensor bundle:
 
 ```bash
 rsnexus-plugin test algorithm-bundle \
-  --bundle-path /path/to/dev-plugins/plugin-builds/algorithms/rs-nexus-algorithm-standard-loading-intensity-0.1.0.rsnxplugin \
-  --sensor-bundle-path /path/to/dev-plugins/plugin-builds/sensors/rs-nexus-sensor-movesense-0.1.2.rsnxplugin \
+  --bundle-path /path/to/nexus-n3-plugin-catalog/plugin-builds/algorithms/rs-nexus-algorithm-standard-loading-intensity-0.1.0.rsnxplugin \
+  --sensor-bundle-path /path/to/nexus-n3-plugin-catalog/plugin-builds/sensors/rs-nexus-sensor-movesense-0.1.2.rsnxplugin \
   --adapter-backend nexus_ble_gateway \
   --gateway-serial-port /dev/serial/by-id/your_gateway_port \
   --duration 15 \
@@ -437,20 +437,20 @@ algorithm itself from `--bundle-path`.
 Run the command from anywhere using the shared tooling CLI:
 
 ```bash
-rsnexus-plugin init sensor movella-dot --output-dir /path/to/dev-plugins
+rsnexus-plugin init sensor movella-dot --output-dir /path/to/nexus-n3-plugin-catalog
 ```
 
-When `--output-dir` points at the shared `dev-plugins` workspace, sensor plugins are placed under:
+When `--output-dir` points at the shared `nexus-n3-plugin-catalog` workspace, sensor plugins are placed under:
 
 ```text
-dev-plugins/sensors/
+nexus-n3-plugin-catalog/sensors/
 ```
 
 Example with additional metadata:
 
 ```bash
 rsnexus-plugin init sensor movella-dot \
-  --output-dir /path/to/dev-plugins \
+  --output-dir /path/to/nexus-n3-plugin-catalog \
   --manufacturer-id 2182 \
   --sample-type imu
 ```
@@ -460,7 +460,7 @@ This creates the plugin source tree and its isolated `.venv`.
 Example output:
 
 ```text
-dev-plugins/
+nexus-n3-plugin-catalog/
   sensors/
     rs-nexus-sensor-movella-dot/
       .venv/
@@ -492,13 +492,13 @@ Python package:
 Run the command from anywhere using the shared tooling CLI:
 
 ```bash
-rsnexus-plugin init algorithm standard-loading-intensity --output-dir /path/to/dev-plugins
+rsnexus-plugin init algorithm standard-loading-intensity --output-dir /path/to/nexus-n3-plugin-catalog
 ```
 
-When `--output-dir` points at the shared `dev-plugins` workspace, algorithm plugins are placed under:
+When `--output-dir` points at the shared `nexus-n3-plugin-catalog` workspace, algorithm plugins are placed under:
 
 ```text
-dev-plugins/algorithms/
+nexus-n3-plugin-catalog/algorithms/
 ```
 
 Intermediate and consolidation executor files are always scaffolded.
@@ -509,7 +509,7 @@ Use these flags when you want the scaffold to enable those stages in `plugin.jso
 
 ```bash
 rsnexus-plugin init algorithm generic-data-summary \
-  --output-dir /path/to/dev-plugins \
+  --output-dir /path/to/nexus-n3-plugin-catalog \
   --with-intermediate \
   --with-consolidation
 ```
@@ -519,7 +519,7 @@ This creates the plugin source tree and its isolated `.venv`.
 Example output:
 
 ```text
-dev-plugins/
+nexus-n3-plugin-catalog/
   algorithms/
     rs-nexus-algorithm-generic-data-summary/
       .venv/
@@ -592,7 +592,7 @@ Those dependencies should be installed into the plugin's own `.venv`.
 For example, an algorithm plugin may need:
 
 ```bash
-cd /path/to/dev-plugins/algorithms/rs-nexus-algorithm-example
+cd /path/to/nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-example
 source .venv/bin/activate
 python -m pip install numpy scipy
 ```
@@ -600,7 +600,7 @@ python -m pip install numpy scipy
 A sensor plugin may need different dependencies:
 
 ```bash
-cd /path/to/dev-plugins/sensors/rs-nexus-sensor-example
+cd /path/to/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-example
 source .venv/bin/activate
 python -m pip install pydantic
 ```
@@ -628,20 +628,20 @@ Sensor example:
 
 ```bash
 rsnexus-plugin build \
-  --plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-movella-dot \
-  --output-dir /path/to/dev-plugins/plugin-builds/sensors
+  --plugin-root /path/to/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movella-dot \
+  --output-dir /path/to/nexus-n3-plugin-catalog/plugin-builds/sensors
 ```
 
 rsnexus-plugin build \
-  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-movesense \
-  --output-dir /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/sensors
+  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movesense \
+  --output-dir /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/plugin-builds/sensors
 
 Algorithm example:
 
 ```bash
 rsnexus-plugin build \
-  --plugin-root /path/to/dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity \
-  --output-dir /path/to/dev-plugins/plugin-builds/algorithms
+  --plugin-root /path/to/nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-standard-loading-intensity \
+  --output-dir /path/to/nexus-n3-plugin-catalog/plugin-builds/algorithms
 ```
 
 The build command should use the plugin's own environment:
@@ -682,7 +682,7 @@ or the environment has been deleted.
 Example output:
 
 ```text
-/path/to/dev-plugins/plugin-builds/sensors/
+/path/to/nexus-n3-plugin-catalog/plugin-builds/sensors/
   rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin
 ```
 
@@ -791,14 +791,14 @@ After building a bundle, install it from `rs-nexus-os`:
 cd /path/to/rs-nexus-os
 
 python -m rs_nexus_plugins install \
-  /path/to/dev-plugins/plugin-builds/sensors/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin
+  /path/to/nexus-n3-plugin-catalog/plugin-builds/sensors/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin
 ```
 
-For local development against `dev-plugins`, `rs-nexus-os` also provides:
+For local development against `nexus-n3-plugin-catalog`, `rs-nexus-os` also provides:
 
 ```bash
 python -m rs_nexus_plugins install-dev \
-  --dev-plugins-root /path/to/dev-plugins \
+  --nexus-n3-plugin-catalog-root /path/to/nexus-n3-plugin-catalog \
   --plugin movella-dot
 ```
 
@@ -880,7 +880,7 @@ To validate a sensor plugin while developing it, without booting the full server
 
 ```bash
 rsnexus-plugin test sensor \
-  --plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-example
+  --plugin-root /path/to/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-example
 ```
 
 The harness should use the plugin's own `.venv`.
@@ -907,35 +907,35 @@ Current reference migration plugins:
 
 ```text
 Sensor:
-  dev-plugins/sensors/rs-nexus-sensor-movella-dot
+  nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movella-dot
 
 Algorithm:
-  dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity
+  nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-standard-loading-intensity
 ```
 
 Build sensor example:
 
 ```bash
 rsnexus-plugin build \
-  --plugin-root ./dev-plugins/sensors/rs-nexus-sensor-movella-dot \
-  --output-dir ./dev-plugins/plugin-builds/sensors
+  --plugin-root ./nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movella-dot \
+  --output-dir ./nexus-n3-plugin-catalog/plugin-builds/sensors
 ```
 
 Build algorithm example:
 
 ```bash
 rsnexus-plugin build \
-  --plugin-root ./dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity \
-  --output-dir ./dev-plugins/plugin-builds/algorithms
+  --plugin-root ./nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-standard-loading-intensity \
+  --output-dir ./nexus-n3-plugin-catalog/plugin-builds/algorithms
 ```
 
 Expected outputs:
 
 ```text
-dev-plugins/plugin-builds/sensors/
+nexus-n3-plugin-catalog/plugin-builds/sensors/
   rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin
 
-dev-plugins/plugin-builds/algorithms/
+nexus-n3-plugin-catalog/plugin-builds/algorithms/
   rs-nexus-algorithm-standard-loading-intensity-0.1.0.rsnxplugin
 ```
 
@@ -952,29 +952,29 @@ source .venv/bin/activate
 Scaffold a sensor plugin:
 
 ```bash
-rsnexus-plugin init sensor movella-dot --output-dir /path/to/dev-plugins
+rsnexus-plugin init sensor movella-dot --output-dir /path/to/nexus-n3-plugin-catalog
 ```
 
 Scaffold an algorithm plugin:
 
 ```bash
-rsnexus-plugin init algorithm standard-loading-intensity --output-dir /path/to/dev-plugins
+rsnexus-plugin init algorithm standard-loading-intensity --output-dir /path/to/nexus-n3-plugin-catalog
 ```
 
 Build a sensor plugin:
 
 ```bash
 rsnexus-plugin build \
-  --plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-movella-dot \
-  --output-dir /path/to/dev-plugins/plugin-builds/sensors
+  --plugin-root /path/to/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movella-dot \
+  --output-dir /path/to/nexus-n3-plugin-catalog/plugin-builds/sensors
 ```
 
 Build an algorithm plugin:
 
 ```bash
 rsnexus-plugin build \
-  --plugin-root /path/to/dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity \
-  --output-dir /path/to/dev-plugins/plugin-builds/algorithms
+  --plugin-root /path/to/nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-standard-loading-intensity \
+  --output-dir /path/to/nexus-n3-plugin-catalog/plugin-builds/algorithms
 ```
 
 Install bundle into RS Nexus OS:
@@ -983,7 +983,7 @@ Install bundle into RS Nexus OS:
 cd /path/to/rs-nexus-os
 
 python -m rs_nexus_plugins install \
-  /path/to/dev-plugins/plugin-builds/sensors/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin
+  /path/to/nexus-n3-plugin-catalog/plugin-builds/sensors/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin
 ```
 
 ## Important Design Rule

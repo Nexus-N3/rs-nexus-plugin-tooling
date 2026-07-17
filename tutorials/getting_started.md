@@ -6,7 +6,7 @@ the example workspace layout:
 ```text
 /home/mike/Desktop/apps/dev/rs-nexus-project/
   rs-nexus-plugin-tooling/
-  dev-plugins/
+  nexus-n3-plugin-catalog/
     sensors/
     algorithms/
     plugin-builds/
@@ -54,10 +54,10 @@ export PATH="$HOME/.local/bin:$PATH"
 Create the workspace directories once:
 
 ```bash
-mkdir -p /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors
-mkdir -p /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/algorithms
-mkdir -p /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/sensors
-mkdir -p /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/algorithms
+mkdir -p /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors
+mkdir -p /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/algorithms
+mkdir -p /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/plugin-builds/sensors
+mkdir -p /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/plugin-builds/algorithms
 ```
 
 ## 3. Scaffold A New Sensor Plugin
@@ -65,7 +65,7 @@ mkdir -p /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/
 Change into the sensor workspace:
 
 ```bash
-cd /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors
+cd /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors
 ```
 
 Scaffold a new sensor plugin:
@@ -77,13 +77,13 @@ rsnexus-plugin init sensor my-sensor
 This creates:
 
 ```text
-/home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-my-sensor
+/home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-my-sensor
 ```
 
 It also creates the plugin-local virtual environment:
 
 ```text
-/home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-my-sensor/.venv
+/home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-my-sensor/.venv
 ```
 
 The plugin `.venv` is used for plugin dependencies only. The CLI is not
@@ -94,7 +94,7 @@ installed into the plugin environment.
 Work inside the generated plugin repository:
 
 ```bash
-cd /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-my-sensor
+cd /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-my-sensor
 ```
 
 Implement the plugin in files such as:
@@ -122,14 +122,14 @@ Example using a generic sensor plugin path:
 
 ```bash
 rsnexus-plugin test sensor \
-  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-my-sensor
+  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-my-sensor
 ```
 
 If you explicitly want to refresh the plugin `.venv` before the run, add:
 
 ```bash
 rsnexus-plugin test sensor \
-  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-my-sensor \
+  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-my-sensor \
   --refresh-env
 ```
 
@@ -137,7 +137,7 @@ Example using the Movesense plugin with the gateway backend:
 
 ```bash
 rsnexus-plugin test sensor \
-  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-movesense \
+  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movesense \
   --adapter-backend nexus_ble_gateway \
   --gateway-serial-port /dev/serial/by-id/your_gateway_port \
   --duration 15 \
@@ -148,7 +148,7 @@ Example using direct host BLE:
 
 ```bash
 rsnexus-plugin test sensor \
-  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-movesense \
+  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movesense \
   --adapter-backend bleak \
   --duration 15 \
   --fail-on-no-data
@@ -166,8 +166,8 @@ To test an algorithm plugin against a specific sensor plugin, use:
 
 ```bash
 rsnexus-plugin test algorithm \
-  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity \
-  --sensor-plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-movesense \
+  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-standard-loading-intensity \
+  --sensor-plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movesense \
   --adapter-backend nexus_ble_gateway \
   --gateway-serial-port /dev/serial/by-id/your_gateway_port \
   --duration 15 \
@@ -190,8 +190,8 @@ To use the built Movesense bundle instead of the sensor source tree:
 
 ```bash
 rsnexus-plugin test algorithm \
-  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity \
-  --sensor-bundle-path /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/sensors/rs-nexus-sensor-movesense-0.1.2.rsnxplugin \
+  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-standard-loading-intensity \
+  --sensor-bundle-path /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/plugin-builds/sensors/rs-nexus-sensor-movesense-0.1.2.rsnxplugin \
   --adapter-backend nexus_ble_gateway \
   --gateway-serial-port /dev/serial/by-id/your_gateway_port \
   --duration 15 \
@@ -202,8 +202,8 @@ To validate a built algorithm bundle as well:
 
 ```bash
 rsnexus-plugin test algorithm-bundle \
-  --bundle-path /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/algorithms/your-algorithm.rsnxplugin \
-  --sensor-bundle-path /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/sensors/rs-nexus-sensor-movesense-0.1.2.rsnxplugin \
+  --bundle-path /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/plugin-builds/algorithms/your-algorithm.rsnxplugin \
+  --sensor-bundle-path /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/plugin-builds/sensors/rs-nexus-sensor-movesense-0.1.2.rsnxplugin \
   --adapter-backend nexus_ble_gateway \
   --gateway-serial-port /dev/serial/by-id/your_gateway_port \
   --duration 15 \
@@ -215,7 +215,7 @@ rsnexus-plugin test algorithm-bundle \
 By default the harness writes captured data under the plugin repository:
 
 ```text
-/home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-my-sensor/
+/home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-my-sensor/
   plugin-test/
     <sample-type>.csv
     errors.log
@@ -224,7 +224,7 @@ By default the harness writes captured data under the plugin repository:
 For the Movesense example this becomes:
 
 ```text
-/home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-movesense/
+/home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movesense/
   plugin-test/
     ecg.csv
     hr.csv
@@ -240,8 +240,8 @@ Once the harness run is satisfactory, build the final plugin bundle:
 
 ```bash
 rsnexus-plugin build \
-  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-my-sensor \
-  --output-dir /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/sensors
+  --plugin-root /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-my-sensor \
+  --output-dir /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/plugin-builds/sensors
 ```
 
 This produces a `.rsnxplugin` bundle for later installation into
@@ -253,7 +253,7 @@ You can also validate the built `.rsnxplugin` locally:
 
 ```bash
 rsnexus-plugin test sensor-bundle \
-  --bundle-path /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/sensors/rs-nexus-sensor-my-sensor-0.1.0.rsnxplugin \
+  --bundle-path /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/plugin-builds/sensors/rs-nexus-sensor-my-sensor-0.1.0.rsnxplugin \
   --adapter-backend bleak \
   --duration 15 \
   --fail-on-no-data
@@ -263,7 +263,7 @@ For gateway testing:
 
 ```bash
 rsnexus-plugin test sensor-bundle \
-  --bundle-path /home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/plugin-builds/sensors/rs-nexus-sensor-movesense-0.1.0.rsnxplugin \
+  --bundle-path /home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/plugin-builds/sensors/rs-nexus-sensor-movesense-0.1.0.rsnxplugin \
   --adapter-backend nexus_ble_gateway \
   --gateway-serial-port /dev/serial/by-id/your_gateway_port \
   --duration 15 \
@@ -274,6 +274,6 @@ By default the built-bundle harness writes capture files into the source plugin
 repository, not into `plugin-builds`:
 
 ```text
-/home/mike/Desktop/apps/dev/rs-nexus-project/dev-plugins/sensors/rs-nexus-sensor-my-sensor/
+/home/mike/Desktop/apps/dev/rs-nexus-project/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-my-sensor/
   plugin-test/
 ```

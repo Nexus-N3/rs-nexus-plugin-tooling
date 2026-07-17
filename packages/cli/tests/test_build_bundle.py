@@ -14,7 +14,7 @@ from rs_nexus_plugin_cli.build import build_plugin_bundle
 
 def test_build_sensor_reference_bundle_includes_phase1_files(tmp_path: Path):
     repo_root = Path("/home/mike/Desktop/apps/dev/rs-nexus-project")
-    plugin_root = repo_root / "dev-plugins" / "sensors" / "rs-nexus-sensor-movella-dot"
+    plugin_root = repo_root / "nexus-n3-plugin-catalog" / "sensors" / "rs-nexus-sensor-movella-dot"
 
     bundle_path = build_plugin_bundle(
         plugin_root=plugin_root,
@@ -41,7 +41,7 @@ def test_build_algorithm_reference_bundle_includes_phase1_files(tmp_path: Path):
     repo_root = Path("/home/mike/Desktop/apps/dev/rs-nexus-project")
     plugin_root = (
         repo_root
-        / "dev-plugins"
+        / "nexus-n3-plugin-catalog"
         / "algorithms"
         / "rs-nexus-algorithm-standard-loading-intensity"
     )
@@ -70,7 +70,7 @@ def test_build_algorithm_reference_bundle_includes_phase1_files(tmp_path: Path):
 
 def test_build_bundle_includes_extra_artifacts(tmp_path: Path):
     repo_root = Path("/home/mike/Desktop/apps/dev/rs-nexus-project")
-    plugin_root = repo_root / "dev-plugins" / "sensors" / "rs-nexus-sensor-movella-dot"
+    plugin_root = repo_root / "nexus-n3-plugin-catalog" / "sensors" / "rs-nexus-sensor-movella-dot"
     extra_wheel = tmp_path / "numpy-0.0.0-py3-none-any.whl"
     extra_wheel.write_bytes(b"placeholder wheel content")
 

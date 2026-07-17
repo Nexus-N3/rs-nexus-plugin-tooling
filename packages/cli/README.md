@@ -72,8 +72,8 @@ Algorithm plugins can be tested in source mode against a chosen sensor plugin:
 
 ```bash
 rsnexus-plugin test algorithm \
-  --plugin-root /path/to/dev-plugins/algorithms/rs-nexus-algorithm-your-algo \
-  --sensor-plugin-root /path/to/dev-plugins/sensors/rs-nexus-sensor-movesense
+  --plugin-root /path/to/nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-your-algo \
+  --sensor-plugin-root /path/to/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movesense
 ```
 
 The algorithm harness reuses the reduced sensor-manager path to stream sensor
@@ -198,21 +198,21 @@ build environments.
 The current reference migration plugins are:
 
 - sensor:
-  `dev-plugins/sensors/rs-nexus-sensor-movella-dot`
+  `nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movella-dot`
 - algorithm:
-  `dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity`
+  `nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-standard-loading-intensity`
 
 Example commands:
 
 ```bash
 rsnexus-plugin build \
-  --plugin-root ./dev-plugins/sensors/rs-nexus-sensor-movella-dot \
+  --plugin-root ./nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movella-dot \
   --output-dir /tmp/rsnx-build-sensor
 ```
 
 ```bash
 rsnexus-plugin build \
-  --plugin-root ./dev-plugins/algorithms/rs-nexus-algorithm-standard-loading-intensity \
+  --plugin-root ./nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-standard-loading-intensity \
   --output-dir /tmp/rsnx-build-algo
 ```
 

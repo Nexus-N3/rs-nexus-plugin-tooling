@@ -120,8 +120,8 @@ def _prepare_target_dir(target_dir: Path, force: bool) -> None:
 
 
 def _resolve_output_dir(output_dir: Path, plugin_family: str) -> Path:
-    """Place plugins under a grouped dev workspace when targeting dev-plugins."""
-    if output_dir.name == "dev-plugins":
+    """Place plugins under a grouped workspace when targeting the shared plugin catalog."""
+    if output_dir.name == "nexus-n3-plugin-catalog":
         return output_dir / plugin_family
     return output_dir
 

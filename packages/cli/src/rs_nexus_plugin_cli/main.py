@@ -227,7 +227,7 @@ def build_parser() -> argparse.ArgumentParser:
     algorithm_bundle_test_parser.add_argument("--bundle-path", required=True, help="Path to the built algorithm .rsnxplugin bundle")
     algorithm_bundle_test_parser.add_argument(
         "--plugin-root",
-        help="Optional source algorithm repository. Defaults to an inferred plugin repo when using the standard dev-plugins layout.",
+        help="Optional source algorithm repository. Defaults to an inferred plugin repo when using the standard nexus-n3-plugin-catalog layout.",
     )
     algorithm_bundle_sensor_group = algorithm_bundle_test_parser.add_mutually_exclusive_group(required=True)
     algorithm_bundle_sensor_group.add_argument(
@@ -273,7 +273,7 @@ def build_parser() -> argparse.ArgumentParser:
     bundle_test_parser.add_argument("--bundle-path", required=True, help="Path to the built .rsnxplugin bundle")
     bundle_test_parser.add_argument(
         "--plugin-root",
-        help="Optional source plugin repository. Defaults to an inferred plugin repo when using the standard dev-plugins layout.",
+        help="Optional source plugin repository. Defaults to an inferred plugin repo when using the standard nexus-n3-plugin-catalog layout.",
     )
     bundle_test_parser.add_argument("--adapter-backend", default="auto")
     bundle_test_parser.add_argument("--sensor-count", type=int, default=1)
@@ -713,7 +713,7 @@ def _infer_bundle_plugin_root(bundle_path: Path, plugin_id: str, plugin_type: st
     raise FileNotFoundError(
         "Could not infer the source plugin repository from the bundle path.\n\n"
         f"Bundle path:\n  {bundle_path}\n\n"
-        "Pass --plugin-root explicitly when testing a built bundle outside the standard dev-plugins layout."
+        "Pass --plugin-root explicitly when testing a built bundle outside the standard nexus-n3-plugin-catalog layout."
     )
 
 

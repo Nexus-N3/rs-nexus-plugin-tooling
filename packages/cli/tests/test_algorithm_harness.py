@@ -13,8 +13,8 @@ for entry in (CLI_SRC, SDK_SRC):
     if str(entry) not in sys.path:
         sys.path.insert(0, str(entry))
 
-from rs_nexus_plugin_cli.algorithm_harness.config import AlgorithmHarnessConfig
-from rs_nexus_plugin_cli.algorithm_harness import runner as algorithm_runner
+from nexus_n3_plugin_cli.algorithm_harness.config import AlgorithmHarnessConfig
+from nexus_n3_plugin_cli.algorithm_harness import runner as algorithm_runner
 
 
 @dataclass
@@ -189,7 +189,7 @@ def _create_sensor_plugin(plugin_root: Path) -> Path:
     (src_dir / "sensor.py").write_text(
         textwrap.dedent(
             """
-            from rs_nexus_plugin_sdk import SensorBase, SensorType
+            from nexus_n3_plugin_sdk import SensorBase, SensorType
 
 
             class DemoSensor(SensorBase):
@@ -256,8 +256,8 @@ def _create_algorithm_plugin(plugin_root: Path) -> Path:
             """
             from dataclasses import dataclass
 
-            from rs_nexus_plugin_sdk import AlgorithmBase
-            from rs_nexus_plugin_sdk.yaml_loader import load_yaml
+            from nexus_n3_plugin_sdk import AlgorithmBase
+            from nexus_n3_plugin_sdk.yaml_loader import load_yaml
 
 
             @dataclass

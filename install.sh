@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_DIR="${RS_NEXUS_PLUGIN_TOOLING_VENV:-$SCRIPT_DIR/.venv}"
+VENV_DIR="${NEXUS_N3_PLUGIN_TOOLING_VENV:-$SCRIPT_DIR/.venv}"
 PYTHON_BIN="${PYTHON:-python3}"
 
 export PIP_DISABLE_PIP_VERSION_CHECK=1
@@ -23,24 +23,24 @@ fi
 
 VENV_PYTHON="$VENV_DIR/bin/python"
 VENV_PIP="$VENV_DIR/bin/pip"
-VENV_CLI="$VENV_DIR/bin/nx3-plugin"
-USER_BIN_DIR="${RS_NEXUS_PLUGIN_TOOLING_BIN_DIR:-$HOME/.local/bin}"
-USER_CLI_LINK="$USER_BIN_DIR/nx3-plugin"
+VENV_CLI="$VENV_DIR/bin/nexus-n3-plugin"
+USER_BIN_DIR="${NEXUS_N3_PLUGIN_TOOLING_BIN_DIR:-$HOME/.local/bin}"
+USER_CLI_LINK="$USER_BIN_DIR/nexus-n3-plugin"
 
 if [[ ! -x "$VENV_PYTHON" || ! -x "$VENV_PIP" ]]; then
   echo "Invalid virtual environment at: $VENV_DIR" >&2
-  echo "Remove it or set RS_NEXUS_PLUGIN_TOOLING_VENV to another path, then rerun." >&2
+  echo "Remove it or set NEXUS_N3_PLUGIN_TOOLING_VENV to another path, then rerun." >&2
   exit 1
 fi
 
 echo "Installing base Python build tooling"
 "$VENV_PIP" install --upgrade pip "setuptools>=61.0" wheel "build>=1.2"
 
-echo "Installing rs-nexus-plugin-sdk in editable mode"
+echo "Installing nexus-n3-plugin-sdk in editable mode"
 "$VENV_PIP" install -e "$SCRIPT_DIR/packages/sdk"
 
 
-echo "Installing rs-nexus-plugin-cli in editable mode"
+echo "Installing nexus-n3-plugin-cli in editable mode"
 "$VENV_PIP" install -e "$SCRIPT_DIR/packages/cli"
 
 echo "Validating CLI"
@@ -56,7 +56,7 @@ chmod 755 "$USER_CLI_LINK"
 
 cat <<EOF
 
-RS Nexus plugin tooling is installed.
+Nexus N3 plugin tooling is installed.
 
 Use the shared CLI from anywhere:
   "$USER_CLI_LINK" init sensor my-sensor-plugin

@@ -2,15 +2,15 @@ from setuptools import find_packages, setup
 
 
 setup(
-    name="rs-nexus-plugin-sdk",
+    name="nexus-n3-plugin-sdk",
     version="0.1.0",
-    description="Shared SDK contracts for RS Nexus plugins",
+    description="Shared SDK contracts for Nexus N3 plugins",
     package_dir={"": "src"},
     packages=find_packages(
         where="src",
         exclude=[
-            "rs_nexus_plugin_sdk.harness",
-            "rs_nexus_plugin_sdk.harness.*",
+            "nexus_n3_plugin_sdk.harness",
+            "nexus_n3_plugin_sdk.harness.*",
         ],
     ),
     install_requires=[

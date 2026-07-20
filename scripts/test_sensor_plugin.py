@@ -13,7 +13,7 @@ CLI_SRC = REPO_ROOT / "packages" / "cli" / "src"
 sys.path.insert(0, str(SDK_SRC))
 sys.path.insert(0, str(CLI_SRC))
 
-from rs_nexus_plugin_cli.sensor_harness.cli import main
+from nexus_n3_plugin_cli.sensor_harness.cli import main
 
 
 if __name__ == "__main__":

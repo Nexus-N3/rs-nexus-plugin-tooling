@@ -1,20 +1,20 @@
-# RS Nexus Plugin CLI
+# Nexus N3 Plugin CLI
 
-Developer CLI for scaffolding, packaging, and locally testing RS Nexus plugins.
+Developer CLI for scaffolding, packaging, and locally testing Nexus N3 plugins.
 
 The current primary workflow is:
 
 1. scaffold or edit a plugin source tree
-2. build a `.rsnxplugin` bundle with `rsnexus-plugin build`
-3. install that bundle using `rs_nexus_plugins` in `rs-nexus-os`
+2. build a `.rsnxplugin` bundle with `nexus-n3-plugin build`
+3. install that bundle using `nexus_n3.plugins` in `nexus-n3-core`
 
 ## Commands
 
 ```bash
-rsnexus-plugin init sensor my-sensor-plugin
-rsnexus-plugin init algorithm my-algorithm-plugin
-rsnexus-plugin init algorithm my-algorithm-plugin --with-intermediate --with-consolidation
-rsnexus-plugin build --plugin-root /path/to/plugin --output-dir /tmp/plugin-build
+nexus-n3-plugin init sensor my-sensor-plugin
+nexus-n3-plugin init algorithm my-algorithm-plugin
+nexus-n3-plugin init algorithm my-algorithm-plugin --with-intermediate --with-consolidation
+nexus-n3-plugin build --plugin-root /path/to/plugin --output-dir /tmp/plugin-build
 ```
 
 Run this from the directory where the plugin repository should be created.
@@ -23,15 +23,15 @@ available on `PATH`.
 
 For sensor plugins, the canonical scaffold layout is:
 
-- repo: `rs-nexus-sensor-<plugin-id>`
-- Python package: `rs_nexus_sensor_<plugin_id>`
+- repo: `nexus-n3-sensor-<plugin-id>`
+- Python package: `nexus_n3_sensor_<plugin_id>`
 
 Recommended workflow:
 
 - install the shared tooling once with `./install.sh`
-- keep `rsnexus-plugin` on `PATH`, for example through `~/.local/bin`
+- keep `nexus-n3-plugin` on `PATH`, for example through `~/.local/bin`
 - create a `.venv` inside each plugin repository
-- let `rsnexus-plugin init` manage the plugin `.venv`
+- let `nexus-n3-plugin init` manage the plugin `.venv`
 
 This keeps plugin dependencies isolated while keeping the CLI and sensor
 harness outside plugin environments.
@@ -48,14 +48,14 @@ From the tooling repo root, run:
 ```
 
 This creates or reuses the tooling `.venv`, installs the CLI there, and writes
-a `rsnexus-plugin` launcher into `~/.local/bin` by default.
+a `nexus-n3-plugin` launcher into `~/.local/bin` by default.
 
 ## Sensor Test Harness
 
 Use the shared CLI to execute a sensor plugin test run:
 
 ```bash
-rsnexus-plugin test sensor --plugin-root /path/to/plugin
+nexus-n3-plugin test sensor --plugin-root /path/to/plugin
 ```
 
 The CLI harness runs in the tooling environment and adds the plugin `.venv`
@@ -65,15 +65,15 @@ even though the harness lives in the tooling environment.
 To test a built `.rsnxplugin` bundle instead of source mode:
 
 ```bash
-rsnexus-plugin test sensor-bundle --bundle-path /path/to/plugin-build/your-plugin.rsnxplugin
+nexus-n3-plugin test sensor-bundle --bundle-path /path/to/plugin-build/your-plugin.rsnxplugin
 ```
 
 Algorithm plugins can be tested in source mode against a chosen sensor plugin:
 
 ```bash
-rsnexus-plugin test algorithm \
-  --plugin-root /path/to/nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-your-algo \
-  --sensor-plugin-root /path/to/nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movesense
+nexus-n3-plugin test algorithm \
+  --plugin-root /path/to/nexus-n3-plugin-catalog/algorithms/nexus-n3-algorithm-your-algo \
+  --sensor-plugin-root /path/to/nexus-n3-plugin-catalog/sensors/nexus-n3-sensor-movesense
 ```
 
 The algorithm harness reuses the reduced sensor-manager path to stream sensor
@@ -81,7 +81,7 @@ samples, then routes those samples through a reduced compute-manager path. It
 prints compute events to the terminal and writes JSONL output under
 `<algorithm-plugin-root>/plugin-test/computed/`.
 
-This mirrors `rs-nexus-os` at the compute-result contract level:
+This mirrors `nexus-n3-core` at the compute-result contract level:
 
 - samples are ingested into a compute-manager style path
 - results are routed by `stage` into `real_time`, `intermediate_time`, and
@@ -89,7 +89,7 @@ This mirrors `rs-nexus-os` at the compute-result contract level:
 - algorithm-specific payload bodies are allowed to differ between plugins
 
 The harness does not impose a single algorithm payload schema. It aligns to the
-existing `rs-nexus-os` expectation that `stage` and compute-result routing are
+existing `nexus-n3-core` expectation that `stage` and compute-result routing are
 consistent, while result contents remain algorithm-specific.
 
 To use a built sensor bundle as the input source, replace
@@ -98,20 +98,20 @@ To use a built sensor bundle as the input source, replace
 To test a built algorithm bundle instead of source mode:
 
 ```bash
-rsnexus-plugin test algorithm-bundle \
+nexus-n3-plugin test algorithm-bundle \
   --bundle-path /path/to/plugin-build/your-algorithm.rsnxplugin \
   --sensor-bundle-path /path/to/plugin-build/your-sensor.rsnxplugin
 ```
 
 ## Build Output
 
-`rsnexus-plugin build` produces a Phase 1 `.rsnxplugin` ZIP archive for
-`rs-nexus-os`.
+`nexus-n3-plugin build` produces a Phase 1 `.rsnxplugin` ZIP archive for
+`nexus-n3-core`.
 
 Basic usage:
 
 ```bash
-rsnexus-plugin build --plugin-root /path/to/plugin --output-dir /tmp/plugin-build
+nexus-n3-plugin build --plugin-root /path/to/plugin --output-dir /tmp/plugin-build
 ```
 
 This writes the final bundle into the directory passed by `--output-dir`.
@@ -129,13 +129,13 @@ persistent output directory rather than `/tmp`.
 Example output:
 
 ```text
-/tmp/plugin-build/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin
+/tmp/plugin-build/nexus-n3-sensor-movella-dot-0.1.0.rsnxplugin
 ```
 
 The build command produces:
 
 - a plugin wheel
-- the local `rs-nexus-plugin-sdk` wheel when it can be resolved
+- the local `nexus-n3-plugin-sdk` wheel when it can be resolved
 - `manifest.json`
 - `checksums.json`
 - a final `.rsnxplugin` archive
@@ -163,7 +163,7 @@ not be embedded in the `.rsnxplugin` unless you include them explicitly.
 
 Why this matters:
 
-- the Phase 1 installer in `rs-nexus-os` installs bundle artifacts into the
+- the Phase 1 installer in `nexus-n3-core` installs bundle artifacts into the
   plugin `.venv`
 - for a connected or pre-provisioned environment, dependencies may already be
   available through the target environment or other local wheel sources
@@ -180,7 +180,7 @@ So “offline-complete bundle” means:
 To do that, pass repeated `--artifact` arguments:
 
 ```bash
-rsnexus-plugin build \
+nexus-n3-plugin build \
   --plugin-root /path/to/plugin \
   --output-dir /tmp/plugin-build \
   --artifact /path/to/wheels/numpy-<version>-py3-none-any.whl \
@@ -198,38 +198,38 @@ build environments.
 The current reference migration plugins are:
 
 - sensor:
-  `nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movella-dot`
+  `nexus-n3-plugin-catalog/sensors/nexus-n3-sensor-movella-dot`
 - algorithm:
-  `nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-standard-loading-intensity`
+  `nexus-n3-plugin-catalog/algorithms/nexus-n3-algorithm-standard-loading-intensity`
 
 Example commands:
 
 ```bash
-rsnexus-plugin build \
-  --plugin-root ./nexus-n3-plugin-catalog/sensors/rs-nexus-sensor-movella-dot \
+nexus-n3-plugin build \
+  --plugin-root ./nexus-n3-plugin-catalog/sensors/nexus-n3-sensor-movella-dot \
   --output-dir /tmp/rsnx-build-sensor
 ```
 
 ```bash
-rsnexus-plugin build \
-  --plugin-root ./nexus-n3-plugin-catalog/algorithms/rs-nexus-algorithm-standard-loading-intensity \
+nexus-n3-plugin build \
+  --plugin-root ./nexus-n3-plugin-catalog/algorithms/nexus-n3-algorithm-standard-loading-intensity \
   --output-dir /tmp/rsnx-build-algo
 ```
 
 These produce `.rsnxplugin` bundles compatible with the Phase 1 installer in
-`rs-nexus-os/rs_nexus_plugins`.
+`nexus-n3-core/nexus_n3.plugins`.
 
 Install example:
 
 ```bash
-cd /path/to/rs-nexus-os
-python -m rs_nexus_plugins install /tmp/rsnx-build-sensor/rs-nexus-sensor-movella-dot-0.1.0.rsnxplugin
+cd /path/to/nexus-n3-core
+python -m nexus_n3.plugins install /tmp/rsnx-build-sensor/nexus-n3-sensor-movella-dot-0.1.0.rsnxplugin
 ```
 
-For local development driven by `config/runtime.env`, `rs-nexus-os` also
+For local development driven by `config/runtime.env`, `nexus-n3-core` also
 provides:
 
 ```bash
-python -m rs_nexus_plugins show-dev-list
-python -m rs_nexus_plugins install-dev-list
+python -m nexus_n3.plugins show-dev-list
+python -m nexus_n3.plugins install-dev-list
 ```

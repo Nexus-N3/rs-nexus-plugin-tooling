@@ -12,10 +12,19 @@ from . import protocol as mt
 from .wizard import WizardCancelled, prompt_bool, prompt_choice, prompt_int, prompt_text
 
 
-def run_system_test(*, start_dir: Path) -> int:
+def run_system_test(
+    *,
+    start_dir: Path,
+    host: str = "localhost",
+    cmd_port: int = 5555,
+    evt_port: int = 5556,
+) -> int:
     """Run the interactive sensor + algorithm system test flow."""
     current_plugin = detect_current_plugin_context(start_dir)
-    client = SystemTestClient()
+    client = SystemTestClient(
+        cmd_pub_addr=f"tcp://{host}:{cmd_port}",
+        evt_sub_addr=f"tcp://{host}:{evt_port}",
+    )
     client.start()
     try:
         server_ready = _check_server_ready(client)

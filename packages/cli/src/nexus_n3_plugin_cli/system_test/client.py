@@ -72,7 +72,10 @@ class SystemTestClient:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise TimeoutError("Timed out waiting for system event.")
-            event = self._queue.get(timeout=remaining)
+            try:
+                event = self._queue.get(timeout=remaining)
+            except queue.Empty as exc:
+                raise TimeoutError("Timed out waiting for system event.") from exc
             if predicate(event):
                 return event
 

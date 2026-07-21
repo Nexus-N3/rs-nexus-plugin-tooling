@@ -178,9 +178,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Install the bundle without activating it as the current plugin version",
     )
 
-    subparsers.add_parser(
+    system_test_parser = subparsers.add_parser(
         "system-test",
         help="Run an interactive nexus-n3-core integration test against installed sensor and algorithm plugins",
+    )
+    system_test_parser.add_argument(
+        "--host",
+        default="localhost",
+        help="Gateway host to test against, for example 192.168.50.1",
+    )
+    system_test_parser.add_argument(
+        "--cmd-port",
+        type=int,
+        default=5555,
+        help="Command socket port for the target gateway",
+    )
+    system_test_parser.add_argument(
+        "--evt-port",
+        type=int,
+        default=5556,
+        help="Event socket port for the target gateway",
     )
 
     test_parser = subparsers.add_parser("test", help="Run focused plugin development harnesses")
@@ -410,7 +427,12 @@ def main() -> int:
 
         if args.command == "system-test":
             from nexus_n3_plugin_cli.system_test.runner import run_system_test
-            return run_system_test(start_dir=Path.cwd())
+            return run_system_test(
+                start_dir=Path.cwd(),
+                host=args.host,
+                cmd_port=args.cmd_port,
+                evt_port=args.evt_port,
+            )
 
         if args.command == "test" and args.test_type == "sensor":
             plugin_root = Path(args.plugin_root).resolve()

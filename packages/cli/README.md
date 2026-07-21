@@ -103,6 +103,32 @@ nexus-n3-plugin test algorithm-bundle \
   --sensor-bundle-path /path/to/plugin-build/your-sensor.rsnxplugin
 ```
 
+## Deployed System Test
+
+Use `system-test` when you want to exercise an already deployed `nexus-n3-core`
+instance over its ZeroMQ gateway instead of testing plugin source or bundles in
+the local harness.
+
+The same interactive workflow can be pointed at a deployed host:
+
+```bash
+nexus-n3-plugin system-test \
+  --host 192.168.50.1
+```
+
+Useful overrides:
+
+```bash
+nexus-n3-plugin system-test \
+  --host 192.168.50.1 \
+  --cmd-port 5555 \
+  --evt-port 5556
+```
+
+The deployed host must already have the required sensor and algorithm plugins
+installed and visible to the running `nexus-n3-core`. The interactive prompts
+and session-building flow remain the same; only the gateway address changes.
+
 ## Build Output
 
 `nexus-n3-plugin build` produces a Phase 1 `.rsnxplugin` ZIP archive for

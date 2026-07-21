@@ -754,6 +754,20 @@ nexus-n3-plugin build \
   --include-dependencies
 ```
 
+When the build host and deploy host differ, target the deployment runtime
+explicitly. For a Raspberry Pi 5 deployment using Python 3.12:
+
+```bash
+nexus-n3-plugin build \
+  --plugin-root /path/to/plugin \
+  --output-dir /path/to/plugin-builds \
+  --include-dependencies \
+  --target-platform manylinux2014_aarch64 \
+  --target-python-version 3.12 \
+  --target-implementation cp \
+  --target-abi cp312
+```
+
 Manual artifact inclusion should remain supported:
 
 ```bash

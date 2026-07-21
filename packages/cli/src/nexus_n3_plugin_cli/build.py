@@ -2,13 +2,89 @@ from __future__ import annotations
 
 import hashlib
 import json
+import platform
 import shutil
 import subprocess
+import sys
 import tempfile
 import zipfile
+from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
+
+
+@dataclass(frozen=True)
+class DependencyTarget:
+    """Bundle target metadata and optional pip download settings."""
+
+    target_id: str | None = None
+    platform: str | None = None
+    python_version: str | None = None
+    implementation: str | None = None
+    abi: str | None = None
+
+    @classmethod
+    def from_preset(cls, target_id: str) -> "DependencyTarget":
+        normalized = target_id.strip().lower()
+        presets = {
+            "rpi": cls(
+                target_id="rpi",
+                platform="manylinux2014_aarch64",
+                python_version="3.12",
+                implementation="cp",
+                abi="cp312",
+            ),
+            "jetson": cls(
+                target_id="jetson",
+                platform="manylinux2014_aarch64",
+                python_version="3.12",
+                implementation="cp",
+                abi="cp312",
+            ),
+            "win": cls(
+                target_id="win",
+                platform="win_amd64",
+                python_version="3.12",
+                implementation="cp",
+                abi="cp312",
+            ),
+            "local": cls(
+                target_id="local",
+                python_version=f"{sys.version_info.major}.{sys.version_info.minor}",
+                implementation=_normalize_python_implementation(sys.implementation.name),
+                abi=_current_abi_tag(),
+            ),
+        }
+        try:
+            return presets[normalized]
+        except KeyError as exc:
+            raise ValueError(f"Unsupported target preset: {target_id}") from exc
+
+    def append_pip_args(self, cmd: list[str]) -> None:
+        if self.platform:
+            cmd.extend(["--platform", self.platform])
+        if self.python_version:
+            cmd.extend(["--python-version", self.python_version])
+        if self.implementation:
+            cmd.extend(["--implementation", self.implementation])
+        if self.abi:
+            cmd.extend(["--abi", self.abi])
+
+    def bundle_suffix(self) -> str:
+        return f"-{self.target_id}" if self.target_id else ""
+
+    def manifest_target(self) -> dict:
+        payload = {
+            "id": self.target_id or "unspecified",
+            "platform": self.platform,
+            "python_version": self.python_version,
+            "implementation": self.implementation,
+            "abi": self.abi,
+            "build_os": platform.system().lower(),
+            "build_machine": platform.machine().lower(),
+        }
+        return {key: value for key, value in payload.items() if value}
 
 
 def _load_plugin_manifest(plugin_root: Path) -> dict:
@@ -60,7 +136,10 @@ def build_plugin_bundle(
     *,
     sdk_root: Path | None = None,
     include_sdk: bool = True,
+    include_dependencies: bool = True,
+    dependency_target: DependencyTarget | None = None,
     extra_artifacts: list[Path] | None = None,
+    dependency_wheelhouses: list[Path] | None = None,
 ) -> Path:
     """Build a Phase 1 .rsnxplugin archive from a plugin source repo."""
     _ = force
@@ -68,6 +147,7 @@ def build_plugin_bundle(
     output_dir = output_dir.resolve()
     plugin_python = _plugin_python(plugin_root)
     extra_artifacts = [artifact.resolve() for artifact in (extra_artifacts or [])]
+    dependency_wheelhouses = [wheelhouse.resolve() for wheelhouse in (dependency_wheelhouses or [])]
 
     legacy_manifest = _load_plugin_manifest(plugin_root)
 
@@ -99,22 +179,28 @@ def build_plugin_bundle(
                 artifacts.append(sdk_wheel)
                 shutil.copy2(sdk_wheel, local_wheelhouse / sdk_wheel.name)
 
-        dependency_wheels = _download_runtime_wheels(
-            [str(plugin_wheel)],
-            build_root / "dependency-dist",
-            python_bin=plugin_python,
-            extra_find_links=[local_wheelhouse],
-        )
-
         existing_names = {artifact.name for artifact in artifacts}
-        for wheel in dependency_wheels:
-            if wheel.name not in existing_names:
-                artifacts.append(wheel)
-                existing_names.add(wheel.name)
+
+        if include_dependencies:
+            dependency_wheels = _download_runtime_wheels(
+                [str(plugin_wheel)],
+                build_root / "dependency-dist",
+                python_bin=plugin_python,
+                extra_find_links=[local_wheelhouse, *dependency_wheelhouses],
+                dependency_target=dependency_target,
+            )
+
+            for wheel in dependency_wheels:
+                if wheel.name not in existing_names:
+                    artifacts.append(wheel)
+                    existing_names.add(wheel.name)
 
         artifacts.extend(extra_artifacts)
 
-        bundle_name = f"{legacy_manifest['package_name']}-{legacy_manifest['version']}.rsnxplugin"
+        target_suffix = dependency_target.bundle_suffix() if dependency_target is not None else ""
+        bundle_name = (
+            f"{legacy_manifest['package_name']}-{legacy_manifest['version']}{target_suffix}.rsnxplugin"
+        )
         bundle_path = output_dir / bundle_name
 
         if bundle_path.exists():
@@ -132,7 +218,12 @@ def build_plugin_bundle(
             copied_artifacts.append(target)
 
         _copy_optional_metadata(plugin_root, legacy_manifest, archive_root)
-        manifest = _build_phase1_manifest(plugin_root, legacy_manifest, copied_artifacts)
+        manifest = _build_phase1_manifest(
+            plugin_root,
+            legacy_manifest,
+            copied_artifacts,
+            dependency_target=dependency_target,
+        )
         (archive_root / "manifest.json").write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
@@ -199,6 +290,7 @@ def _download_runtime_wheels(
     *,
     python_bin: Path,
     extra_find_links: list[Path] | None = None,
+    dependency_target: DependencyTarget | None = None,
 ) -> list[Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -214,6 +306,9 @@ def _download_runtime_wheels(
     ]
     for link_dir in extra_find_links or []:
         cmd.extend(["--find-links", str(link_dir)])
+
+    if dependency_target is not None:
+        dependency_target.append_pip_args(cmd)
 
     cmd.extend(requirements)
 
@@ -239,7 +334,13 @@ def _copy_optional_metadata(plugin_root: Path, legacy_manifest: dict, archive_ro
             shutil.copy2(source, metadata_dir / "algorithm_config.yaml")
 
 
-def _build_phase1_manifest(plugin_root: Path, legacy_manifest: dict, artifacts: list[Path]) -> dict:
+def _build_phase1_manifest(
+    plugin_root: Path,
+    legacy_manifest: dict,
+    artifacts: list[Path],
+    *,
+    dependency_target: DependencyTarget | None = None,
+) -> dict:
     entry_module, entry_callable = legacy_manifest["entry_point"].split(":", 1)
     plugin_type = legacy_manifest["plugin_type"]
     capabilities = _load_capabilities(plugin_root, legacy_manifest)
@@ -280,6 +381,8 @@ def _build_phase1_manifest(plugin_root: Path, legacy_manifest: dict, artifacts: 
             "timeout_seconds": 10,
         },
     }
+    if dependency_target is not None:
+        manifest["target"] = dependency_target.manifest_target()
     if plugin_type == "algorithm":
         manifest["capabilities"].update(
             {
@@ -345,3 +448,18 @@ def _sha256_file(path: Path) -> str:
                 break
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _normalize_python_implementation(name: str) -> str:
+    normalized = name.strip().lower()
+    if normalized == "cpython":
+        return "cp"
+    return normalized
+
+
+def _current_abi_tag() -> str | None:
+    version = f"{sys.version_info.major}{sys.version_info.minor}"
+    implementation = _normalize_python_implementation(sys.implementation.name)
+    if implementation == "cp":
+        return f"cp{version}"
+    return None

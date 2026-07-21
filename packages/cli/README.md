@@ -14,7 +14,7 @@ The current primary workflow is:
 nexus-n3-plugin init sensor my-sensor-plugin
 nexus-n3-plugin init algorithm my-algorithm-plugin
 nexus-n3-plugin init algorithm my-algorithm-plugin --with-intermediate --with-consolidation
-nexus-n3-plugin build --plugin-root /path/to/plugin --output-dir /tmp/plugin-build
+nexus-n3-plugin build --plugin-root /path/to/plugin --output-dir /tmp/plugin-build --target rpi
 ```
 
 Run this from the directory where the plugin repository should be created.
@@ -111,8 +111,20 @@ nexus-n3-plugin test algorithm-bundle \
 Basic usage:
 
 ```bash
-nexus-n3-plugin build --plugin-root /path/to/plugin --output-dir /tmp/plugin-build
+nexus-n3-plugin build --plugin-root /path/to/plugin --output-dir /tmp/plugin-build --target rpi
 ```
+
+This default build creates a deployment bundle:
+
+- plugin wheel
+- SDK wheel
+- third-party dependency wheels
+- manifest
+- checksums
+- metadata
+
+The target is encoded in both the filename and the manifest. For a Raspberry Pi
+deployment target, the output name ends in `-rpi.rsnxplugin`.
 
 This writes the final bundle into the directory passed by `--output-dir`.
 
@@ -129,7 +141,7 @@ persistent output directory rather than `/tmp`.
 Example output:
 
 ```text
-/tmp/plugin-build/nexus-n3-sensor-movella-dot-0.1.0.rsnxplugin
+/tmp/plugin-build/nexus-n3-sensor-movella-dot-0.1.0-rpi.rsnxplugin
 ```
 
 The build command produces:
@@ -147,19 +159,40 @@ The archive is a normal ZIP container with:
 - wheel artifacts under `artifacts/`
 - optional copied metadata under `metadata/`
 
-## Third-Party Wheels
+## Targeted Bundles
 
-The build command does **not** fetch third-party dependency wheels and place
-them into the bundle automatically.
+The build command now resolves third-party dependency wheels by default so the
+resulting bundle is installable offline on the selected target, assuming those
+target wheels can be resolved at build time.
 
-In practice this means packages such as:
+For a Raspberry Pi 5 running Python 3.12:
+
+```bash
+nexus-n3-plugin build \
+  --plugin-root /path/to/plugin \
+  --output-dir /path/to/nexus-n3-plugin-catalog/plugin-builds/sensors/rpi \
+  --target rpi
+```
+
+For Windows:
+
+```bash
+nexus-n3-plugin build \
+  --plugin-root /path/to/plugin \
+  --output-dir /path/to/nexus-n3-plugin-catalog/plugin-builds/sensors/win \
+  --target win
+```
+
+If you need a slim bundle that leaves third-party dependency resolution to the
+target host, use `--slim`.
+
+In practice packages such as:
 
 - `numpy`
 - `scipy`
 - any other plugin dependency not already represented by a local wheel you pass
 
-will still be declared in the plugin wheel metadata, but their wheel files will
-not be embedded in the `.rsnxplugin` unless you include them explicitly.
+must have target-compatible wheels available when the bundle is built.
 
 Why this matters:
 
@@ -177,7 +210,46 @@ So “offline-complete bundle” means:
 - every third-party dependency wheel needed at install time is also inside the
   bundle
 
-To do that, pass repeated `--artifact` arguments:
+If those wheels are not available from your configured package indexes or local
+wheelhouse, the build will fail. That is expected because the bundle would not
+be deployable offline.
+
+To use a pre-staged target wheel cache, add one or more `--wheelhouse`
+arguments:
+
+```bash
+nexus-n3-plugin build \
+  --plugin-root /path/to/plugin \
+  --output-dir /path/to/nexus-n3-plugin-catalog/plugin-builds/sensors/rpi \
+  --target rpi \
+  --wheelhouse /path/to/wheelhouse/rpi
+```
+
+If you intentionally want a slim bundle, use:
+
+```bash
+nexus-n3-plugin build \
+  --plugin-root /path/to/plugin \
+  --output-dir /tmp/plugin-build \
+  --target rpi \
+  --slim
+```
+
+You can still override the target wheel resolution settings explicitly when a
+preset needs adjustment:
+
+```bash
+nexus-n3-plugin build \
+  --plugin-root /path/to/plugin \
+  --output-dir /tmp/plugin-build \
+  --target rpi \
+  --target-platform manylinux2014_aarch64 \
+  --target-python-version 3.12 \
+  --target-implementation cp \
+  --target-abi cp312
+```
+
+Manual artifact inclusion should remain supported:
 
 ```bash
 nexus-n3-plugin build \

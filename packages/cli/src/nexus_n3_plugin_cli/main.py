@@ -12,7 +12,7 @@ from pathlib import Path
 
 from nexus_n3_plugin_cli.scaffold.algorithm import scaffold_algorithm_plugin
 from nexus_n3_plugin_cli.scaffold.sensor import scaffold_sensor_plugin
-from nexus_n3_plugin_cli.build import build_plugin_bundle
+from nexus_n3_plugin_cli.build import DependencyTarget, build_plugin_bundle
 from nexus_n3_plugin_cli.install import install_bundle
 from nexus_n3_plugin_cli.plugin_env import (
     prepare_plugin_venv,
@@ -121,6 +121,44 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help="Additional wheel artifact to include in the .rsnxplugin bundle",
+    )
+    build_parser.add_argument(
+        "--wheelhouse",
+        action="append",
+        default=[],
+        help="Additional local wheelhouse directory used to resolve target dependency wheels",
+    )
+    build_parser.add_argument(
+        "--include-dependencies",
+        action="store_true",
+        help="Deprecated compatibility flag. Dependency-complete bundles are now the default.",
+    )
+    build_parser.add_argument(
+        "--slim",
+        action="store_true",
+        help="Build a slim bundle without resolving third-party dependency wheels",
+    )
+    build_parser.add_argument(
+        "--target",
+        choices=["rpi", "jetson", "win", "local"],
+        default="local",
+        help="Bundle target preset used for naming, manifest metadata, and dependency wheel resolution",
+    )
+    build_parser.add_argument(
+        "--target-platform",
+        help="Optional pip download target platform, e.g. manylinux2014_aarch64",
+    )
+    build_parser.add_argument(
+        "--target-python-version",
+        help="Optional pip download target Python version, e.g. 3.12",
+    )
+    build_parser.add_argument(
+        "--target-implementation",
+        help="Optional pip download target implementation, e.g. cp",
+    )
+    build_parser.add_argument(
+        "--target-abi",
+        help="Optional pip download target ABI, e.g. cp312",
     )
     build_parser.add_argument(
         "--force",
@@ -334,13 +372,33 @@ def main() -> int:
             return 0
 
         if args.command == "build":
+            dependency_target = DependencyTarget.from_preset(args.target)
+            if args.target_platform:
+                dependency_target = DependencyTarget(
+                    target_id=dependency_target.target_id,
+                    platform=args.target_platform,
+                    python_version=args.target_python_version or dependency_target.python_version,
+                    implementation=args.target_implementation or dependency_target.implementation,
+                    abi=args.target_abi or dependency_target.abi,
+                )
+            elif any([args.target_python_version, args.target_implementation, args.target_abi]):
+                dependency_target = DependencyTarget(
+                    target_id=dependency_target.target_id,
+                    platform=dependency_target.platform,
+                    python_version=args.target_python_version or dependency_target.python_version,
+                    implementation=args.target_implementation or dependency_target.implementation,
+                    abi=args.target_abi or dependency_target.abi,
+                )
             build_plugin_bundle(
                 plugin_root=Path(args.plugin_root),
                 output_dir=Path(args.output_dir),
                 force=args.force,
                 sdk_root=Path(args.sdk_root) if args.sdk_root else None,
                 include_sdk=not args.no_sdk,
+                include_dependencies=not args.slim,
+                dependency_target=dependency_target,
                 extra_artifacts=[Path(path) for path in args.artifact],
+                dependency_wheelhouses=[Path(path) for path in args.wheelhouse],
             )
             return 0
 
